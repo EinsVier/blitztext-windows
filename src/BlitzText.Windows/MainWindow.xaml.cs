@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private bool isHotkeyReady;
     private bool isProcessing;
     private bool isRefreshingWhisperModels;
+    private string selectedPromptPresetId = "general";
     private WorkflowKind activeWorkflow;
     private TargetWindow activeTargetWindow = new(IntPtr.Zero, "");
     private CancellationTokenSource? workflowCancellation;
@@ -106,7 +107,7 @@ public partial class MainWindow : Window
         EmojisHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
 
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(settings.DefaultWorkflow, settings.AppLanguage);
-        PromptPresetCombo.SelectedIndex = 0;
+        SelectPromptPreset(selectedPromptPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(settings.AppLanguage, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(settings.DictationLanguage, settings.AppLanguage);
         TranscriptionProviderCombo.SelectedItem = settings.TranscriptionProvider;
@@ -325,6 +326,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        selectedPromptPresetId = selectedPreset.Value.Id;
         ImprovePromptBox.Text = selectedPreset.Value.GetPrompt(settings.AppLanguage);
         SaveSettingsFromUi(saveToDisk: false);
         ScheduleAutoSave();
@@ -772,6 +774,7 @@ public partial class MainWindow : Window
         var selectedWorkflow = settings.DefaultWorkflow;
         var selectedAppLanguage = settings.AppLanguage;
         var selectedDictationLanguage = settings.DictationLanguage;
+        var selectedPresetId = GetSelectedPromptPresetId();
 
         isLoading = true;
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
@@ -779,10 +782,35 @@ public partial class MainWindow : Window
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedWorkflow, settings.AppLanguage);
-        PromptPresetCombo.SelectedIndex = 0;
+        SelectPromptPreset(selectedPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(selectedAppLanguage, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(selectedDictationLanguage, settings.AppLanguage);
         isLoading = false;
+    }
+
+    private string GetSelectedPromptPresetId()
+    {
+        if (PromptPresetCombo.SelectedItem is DisplayOption<PromptPreset> selectedPreset)
+        {
+            selectedPromptPresetId = selectedPreset.Value.Id;
+        }
+
+        return selectedPromptPresetId;
+    }
+
+    private void SelectPromptPreset(string presetId)
+    {
+        if (PromptPresetCombo.ItemsSource is not IEnumerable<DisplayOption<PromptPreset>> options)
+        {
+            return;
+        }
+
+        var selectedOption = options.FirstOrDefault(option => option.Value.Id == presetId) ?? options.FirstOrDefault();
+        if (selectedOption is not null)
+        {
+            selectedPromptPresetId = selectedOption.Value.Id;
+            PromptPresetCombo.SelectedItem = selectedOption;
+        }
     }
 
     private void ApplyLocalization()
