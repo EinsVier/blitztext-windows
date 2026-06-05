@@ -1,0 +1,47 @@
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+    Name="BlitzText Windows"
+    Manufacturer="Micha"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="655C162C-B793-4A4D-BBD2-B67CDDCF1CD7"
+    Scope="perUser">
+
+    <SummaryInformation Description="BlitzText Windows Installer" Manufacturer="Micha" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of BlitzText Windows is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="BlitzTextIcon" SourceFile="$(var.RepoRoot)\src\BlitzText.Windows\Resources\blitztext.ico" />
+    <Property Id="ARPPRODUCTICON" Value="BlitzTextIcon" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.RepoRoot)\setup\wix\License.rtf" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="APPFOLDER" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="InstallRoot" Name="BlitzText">
+        <Directory Id="APPFOLDER" Name="app" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuBlitzText" Name="BlitzText" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="BlitzText Windows" Level="1">
+      <ComponentGroupRef Id="PublishedFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <Component Id="ApplicationShortcut" Directory="ProgramMenuBlitzText" Guid="12F587A6-86B5-49B1-B79D-D737A9262DA0">
+      <Shortcut
+        Id="StartMenuShortcut"
+        Name="BlitzText"
+        Description="BlitzText Windows"
+        Target="[APPFOLDER]BlitzText.Windows.exe"
+        WorkingDirectory="APPFOLDER"
+        Icon="BlitzTextIcon" />
+      <RemoveFolder Id="RemoveProgramMenuBlitzText" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Micha\BlitzText" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>

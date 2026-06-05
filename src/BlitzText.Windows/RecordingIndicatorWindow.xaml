@@ -1,0 +1,19 @@
+<Window x:Class="BlitzText.Windows.RecordingIndicatorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="38" Height="38"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowActivated="False"
+        Focusable="False"
+        IsHitTestVisible="False">
+    <Border Width="34" Height="34" CornerRadius="17" Background="#DC2626" BorderBrush="White" BorderThickness="2">
+        <Grid>
+            <Ellipse Width="8" Height="8" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+    </Border>
+</Window>
