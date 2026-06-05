@@ -121,6 +121,15 @@
                                     <TextBlock x:Name="OpenAiRewriteModelLabelText" Text="Rewrite-Modell" FontWeight="SemiBold" />
                                     <TextBox x:Name="OpenAiRewriteModelBox" Height="32" Margin="0,8,0,20" TextChanged="Settings_Changed" />
 
+                                    <TextBlock Text="OpenRouter" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
+                                    <TextBlock x:Name="OpenRouterHintText" Text="Optionaler Rewrite-Provider ueber OpenRouter." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,16" />
+
+                                    <TextBlock Text="API Key" FontWeight="SemiBold" />
+                                    <PasswordBox x:Name="OpenRouterApiKeyBox" Height="32" Margin="0,8,0,14" PasswordChanged="ProviderApiKeyBox_PasswordChanged" />
+
+                                    <TextBlock x:Name="OpenRouterRewriteModelLabelText" Text="Rewrite-Modell" FontWeight="SemiBold" />
+                                    <TextBox x:Name="OpenRouterRewriteModelBox" Height="32" Margin="0,8,0,20" TextChanged="Settings_Changed" />
+
                                     <TextBlock x:Name="LocalTranscriptionTitleText" Text="Lokale Transkription" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
                                     <TextBlock x:Name="LocalTranscriptionHintText" Text="Optional: whisper.cpp EXE und ein lokales Whisper-Modell." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,16" />
 
@@ -156,6 +165,15 @@
                                     <TextBox x:Name="OllamaRewriteModelBox" Height="32" Margin="0,8,0,18" TextChanged="Settings_Changed" />
 
                                     <Button x:Name="TestOllamaButton" Content="Ollama testen" Height="34" Margin="0,0,0,8" Click="TestOllamaButton_Click" />
+
+                                    <TextBlock Text="Anthropic" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" Margin="0,22,0,0" />
+                                    <TextBlock x:Name="AnthropicHintText" Text="Optionaler Rewrite-Provider fuer Claude-Modelle." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,16" />
+
+                                    <TextBlock Text="API Key" FontWeight="SemiBold" />
+                                    <PasswordBox x:Name="AnthropicApiKeyBox" Height="32" Margin="0,8,0,14" PasswordChanged="ProviderApiKeyBox_PasswordChanged" />
+
+                                    <TextBlock x:Name="AnthropicRewriteModelLabelText" Text="Rewrite-Modell" FontWeight="SemiBold" />
+                                    <TextBox x:Name="AnthropicRewriteModelBox" Height="32" Margin="0,8,0,18" TextChanged="Settings_Changed" />
                                 </StackPanel>
                             </Grid>
                         </ScrollViewer>
@@ -209,8 +227,8 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock x:Name="PromptPresetTitleText" Text="Prompt-Vorlagen" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
-                                <TextBlock x:Name="PromptPresetHintText" Text="Wendet eine Vorlage auf den Verbessern-Workflow an." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,12" />
+                                <TextBlock x:Name="PromptPresetTitleText" Text="Prompt-Vorlagen (Verbessern)" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
+                                <TextBlock x:Name="PromptPresetHintText" Text="Diese Vorlagen setzen den Prompt fuer den Improve-Modus (Verbessern)." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,12" />
                                 <DockPanel LastChildFill="True" Margin="0,0,0,18">
                                     <Button x:Name="ApplyPromptPresetButton" DockPanel.Dock="Right" Content="Anwenden" Width="96" Height="32" Margin="10,0,0,0" Click="ApplyPromptPresetButton_Click" />
                                     <ComboBox x:Name="PromptPresetCombo" Height="32" />
@@ -260,7 +278,12 @@
 
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="AppVersionTitleText" Text="Version" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
-                                <TextBlock x:Name="AppVersionText" Text="BlitzText Windows" TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,18" />
+                                <TextBlock x:Name="AppVersionText" Text="BlitzText Windows" TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,12" />
+                                <TextBlock x:Name="UpdateStatusText" Text="Noch nicht nach Updates gesucht." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,0,0,12" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,22">
+                                    <Button x:Name="CheckUpdatesButton" Content="Nach Updates suchen" Height="36" MinWidth="150" Click="CheckUpdatesButton_Click" />
+                                    <Button x:Name="OpenUpdateButton" Content="Download oeffnen" Height="36" MinWidth="130" Margin="10,0,0,0" IsEnabled="False" Click="OpenUpdateButton_Click" />
+                                </StackPanel>
 
                                 <TextBlock x:Name="ExportSettingsTitleText" Text="Einstellungen exportieren" FontSize="18" FontWeight="SemiBold" Foreground="#14171F" />
                                 <TextBlock x:Name="ExportSettingsHintText" Text="Speichert Provider, Hotkeys, Prompts und Workflow-Auswahl als JSON-Datei. Der OpenAI-Key wird nicht exportiert." TextWrapping="Wrap" Foreground="#5A6170" Margin="0,6,0,16" />

@@ -38,6 +38,8 @@ Provider behavior depends on your configuration:
 - Local Whisper model picker, path browse buttons, test button, and configurable timeout.
 - Text rewrite provider abstraction.
 - OpenAI rewrite provider.
+- OpenRouter rewrite provider.
+- Anthropic rewrite provider for Claude models.
 - Ollama rewrite provider via `http://localhost:11434/api/chat`.
 - Ollama connection test via `/api/tags`.
 - Optional Ollama warm-up with `keep_alive`.
@@ -45,7 +47,7 @@ Provider behavior depends on your configuration:
 - OpenAI API key storage in Windows Credential Manager.
 - Custom names/vocabulary context for transcription and rewrite prompts.
 - Editable workflow prompts for improve, calm, and emoji modes.
-- Prompt presets for common improve workflows such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, AI prompts, AI image prompts, music prompts, and technical text.
+- Prompt presets for the Improve workflow, such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, AI prompts, AI image prompts, music prompts, and technical text.
 - Workflows:
   - `Transcribe`
   - `Improve`
@@ -56,6 +58,7 @@ Provider behavior depends on your configuration:
 - Local result history under `%APPDATA%\BlitzText\history.json`.
 - Optional local result history.
 - Settings export/import from the Backup tab.
+- Manual update check from the Backup tab through a small `latest.json` manifest.
 
 ## Requirements
 
@@ -63,7 +66,9 @@ Provider behavior depends on your configuration:
 - .NET 8 Desktop Runtime for running.
 - .NET SDK for development.
 - OpenAI API key for online transcription.
-- Ollama installed and running for local rewrite workflows.
+- Optional: OpenRouter API key for OpenRouter rewrite workflows.
+- Optional: Anthropic API key for Claude rewrite workflows.
+- Optional: Ollama installed and running for local rewrite workflows.
 - Optional: `whisper.cpp` executable and a Whisper model file for local transcription.
 
 ## Build
@@ -122,6 +127,26 @@ The package script also refreshes:
 
 ```text
 publish\packages\BlitzText-Windows-latest.zip
+```
+
+## Update Check
+
+BlitzText does not silently replace itself in the background. The Backup tab can check a small update manifest and open the configured download page when a newer version is available.
+
+The default manifest URL is:
+
+```text
+https://raw.githubusercontent.com/EinsVier/blitztext-windows/master/update/latest.json
+```
+
+Manifest format:
+
+```json
+{
+  "version": "0.4.0",
+  "url": "https://github.com/EinsVier/blitztext-windows/releases/latest",
+  "notesUrl": "https://github.com/EinsVier/blitztext-windows/releases/latest"
+}
 ```
 
 After extracting the ZIP, install for the current Windows user:
@@ -194,11 +219,11 @@ Uninstall app files and shortcuts:
 
 ## Notes
 
-Settings are stored as JSON under `%APPDATA%\BlitzText\settings.json`. This includes provider settings and the selected keyboard or mouse trigger. The OpenAI API key is stored separately in Windows Credential Manager under `BlitzText.OpenAI.ApiKey`.
+Settings are stored as JSON under `%APPDATA%\BlitzText\settings.json`. This includes provider settings and the selected keyboard or mouse trigger. API keys are stored separately in Windows Credential Manager under `BlitzText.OpenAI.ApiKey`, `BlitzText.OpenRouter.ApiKey`, and `BlitzText.Anthropic.ApiKey`.
 
 The Prompts tab stores custom names and workflow instructions in settings. Custom names are passed as context to OpenAI transcription when supported and to rewrite providers such as OpenAI or Ollama.
 
-The Backup tab can export and import provider settings, hotkeys, prompts, and workflow choices. The OpenAI API key is intentionally not exported and remains in Windows Credential Manager.
+The Backup tab can export and import provider settings, hotkeys, prompts, and workflow choices. API keys are intentionally not exported and remain in Windows Credential Manager.
 
 Windows cannot reliably use the physical `Fn` key as an app hotkey because it is usually handled by the keyboard firmware. BlitzText therefore uses Windows-visible combinations such as `Ctrl+Shift+F8` through `Ctrl+Shift+F12`.
 

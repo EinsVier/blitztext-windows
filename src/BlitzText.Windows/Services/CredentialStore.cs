@@ -6,6 +6,8 @@ namespace BlitzText.Windows.Services;
 public sealed class CredentialStore
 {
     private const string OpenAiApiKeyTarget = "BlitzText.OpenAI.ApiKey";
+    private const string OpenRouterApiKeyTarget = "BlitzText.OpenRouter.ApiKey";
+    private const string AnthropicApiKeyTarget = "BlitzText.Anthropic.ApiKey";
     private const int CredTypeGeneric = 1;
     private const int CredPersistLocalMachine = 2;
 
@@ -17,6 +19,26 @@ public sealed class CredentialStore
     public void SaveOpenAiApiKey(string apiKey)
     {
         SaveSecret(OpenAiApiKeyTarget, "OpenAI API Key", apiKey);
+    }
+
+    public string ReadOpenRouterApiKey()
+    {
+        return ReadSecret(OpenRouterApiKeyTarget);
+    }
+
+    public void SaveOpenRouterApiKey(string apiKey)
+    {
+        SaveSecret(OpenRouterApiKeyTarget, "OpenRouter API Key", apiKey);
+    }
+
+    public string ReadAnthropicApiKey()
+    {
+        return ReadSecret(AnthropicApiKeyTarget);
+    }
+
+    public void SaveAnthropicApiKey(string apiKey)
+    {
+        SaveSecret(AnthropicApiKeyTarget, "Anthropic API Key", apiKey);
     }
 
     private static string ReadSecret(string target)

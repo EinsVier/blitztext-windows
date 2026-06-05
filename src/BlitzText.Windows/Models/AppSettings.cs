@@ -13,6 +13,11 @@ public sealed class AppSettings : INotifyPropertyChanged
     private string openAiApiKey = "";
     private string openAiTranscriptionModel = "whisper-1";
     private string openAiRewriteModel = "gpt-4o-mini";
+    private string openRouterApiKey = "";
+    private string openRouterRewriteModel = "openai/gpt-4o-mini";
+    private string anthropicApiKey = "";
+    private string anthropicRewriteModel = "claude-sonnet-4-20250514";
+    private string updateManifestUrl = "https://raw.githubusercontent.com/EinsVier/blitztext-windows/master/update/latest.json";
     private string localWhisperExecutablePath = "";
     private string localWhisperModelPath = "";
     private int localWhisperTimeoutSeconds = 180;
@@ -76,6 +81,38 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => openAiRewriteModel;
         set => SetField(ref openAiRewriteModel, value);
+    }
+
+    [JsonIgnore]
+    public string OpenRouterApiKey
+    {
+        get => openRouterApiKey;
+        set => SetField(ref openRouterApiKey, value);
+    }
+
+    public string OpenRouterRewriteModel
+    {
+        get => openRouterRewriteModel;
+        set => SetField(ref openRouterRewriteModel, value);
+    }
+
+    [JsonIgnore]
+    public string AnthropicApiKey
+    {
+        get => anthropicApiKey;
+        set => SetField(ref anthropicApiKey, value);
+    }
+
+    public string AnthropicRewriteModel
+    {
+        get => anthropicRewriteModel;
+        set => SetField(ref anthropicRewriteModel, value);
+    }
+
+    public string UpdateManifestUrl
+    {
+        get => updateManifestUrl;
+        set => SetField(ref updateManifestUrl, value);
     }
 
     public string LocalWhisperExecutablePath

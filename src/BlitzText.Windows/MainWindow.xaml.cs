@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Interop;
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
     private readonly HistoryStore historyStore = new();
     private readonly CredentialStore credentialStore = new();
     private readonly OllamaConnectionTester ollamaConnectionTester = new();
+    private readonly UpdateChecker updateChecker = new(new HttpClient());
     private readonly AppSettings settings;
     private readonly AudioRecorderService audioRecorder = new();
     private readonly BlitzWorkflowRunner workflowRunner;
@@ -29,6 +31,7 @@ public partial class MainWindow : Window
     private bool isHotkeyReady;
     private bool isProcessing;
     private bool isRefreshingWhisperModels;
+    private string latestUpdateUrl = "";
     private string selectedPromptPresetId = "general";
     private WorkflowKind activeWorkflow;
     private TargetWindow activeTargetWindow = new(IntPtr.Zero, "");
@@ -39,7 +42,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         settings = settingsStore.Load();
-        LoadOpenAiApiKey();
+        LoadProviderApiKeys();
         workflowRunner = new BlitzWorkflowRunner(new ProviderFactory(settings), settings);
         targetWindowService = new TargetWindowService(() => new WindowInteropHelper(this).Handle);
         autoSaveTimer = new DispatcherTimer
@@ -119,6 +122,10 @@ public partial class MainWindow : Window
         OpenAiApiKeyBox.Password = settings.OpenAiApiKey;
         OpenAiTranscriptionModelBox.Text = settings.OpenAiTranscriptionModel;
         OpenAiRewriteModelBox.Text = settings.OpenAiRewriteModel;
+        OpenRouterApiKeyBox.Password = settings.OpenRouterApiKey;
+        OpenRouterRewriteModelBox.Text = settings.OpenRouterRewriteModel;
+        AnthropicApiKeyBox.Password = settings.AnthropicApiKey;
+        AnthropicRewriteModelBox.Text = settings.AnthropicRewriteModel;
         LocalWhisperExecutablePathBox.Text = settings.LocalWhisperExecutablePath;
         LocalWhisperModelPathBox.Text = settings.LocalWhisperModelPath;
         LocalWhisperTimeoutBox.Text = settings.LocalWhisperTimeoutSeconds.ToString();
@@ -307,6 +314,59 @@ public partial class MainWindow : Window
         SaveStatusText.Text = $"Importiert: {DateTime.Now:HH:mm:ss}";
     }
 
+    private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        OpenUpdateButton.IsEnabled = false;
+        latestUpdateUrl = "";
+        UpdateStatusText.Text = Localizer.T(settings.AppLanguage, "CheckingUpdates");
+
+        try
+        {
+            var result = await updateChecker.CheckAsync(
+                settings.UpdateManifestUrl,
+                GetAppVersion(),
+                CancellationToken.None);
+
+            if (!result.IsUpdateAvailable)
+            {
+                UpdateStatusText.Text = string.Format(
+                    Localizer.T(settings.AppLanguage, "AppIsCurrent"),
+                    result.CurrentVersion);
+                return;
+            }
+
+            latestUpdateUrl = result.DownloadUrl;
+            OpenUpdateButton.IsEnabled = true;
+            UpdateStatusText.Text = string.Format(
+                Localizer.T(settings.AppLanguage, "UpdateAvailable"),
+                result.LatestVersion);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = string.Format(
+                Localizer.T(settings.AppLanguage, "UpdateCheckFailed"),
+                ex.Message);
+        }
+        finally
+        {
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private void OpenUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(latestUpdateUrl))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(latestUpdateUrl)
+        {
+            UseShellExecute = true
+        });
+    }
+
     private void ResetPromptsButton_Click(object sender, RoutedEventArgs e)
     {
         ImprovePromptBox.Text = DefaultPrompts.GetImprove(settings.AppLanguage);
@@ -391,9 +451,16 @@ public partial class MainWindow : Window
 
     private void OpenAiApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
+        ProviderApiKeyBox_PasswordChanged(sender, e);
+    }
+
+    private void ProviderApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
         if (!isLoading)
         {
             settings.OpenAiApiKey = OpenAiApiKeyBox.Password;
+            settings.OpenRouterApiKey = OpenRouterApiKeyBox.Password;
+            settings.AnthropicApiKey = AnthropicApiKeyBox.Password;
             ScheduleAutoSave();
         }
     }
@@ -658,6 +725,10 @@ public partial class MainWindow : Window
         settings.OpenAiApiKey = OpenAiApiKeyBox.Password;
         settings.OpenAiTranscriptionModel = OpenAiTranscriptionModelBox.Text.Trim();
         settings.OpenAiRewriteModel = OpenAiRewriteModelBox.Text.Trim();
+        settings.OpenRouterApiKey = OpenRouterApiKeyBox.Password;
+        settings.OpenRouterRewriteModel = OpenRouterRewriteModelBox.Text.Trim();
+        settings.AnthropicApiKey = AnthropicApiKeyBox.Password;
+        settings.AnthropicRewriteModel = AnthropicRewriteModelBox.Text.Trim();
         settings.LocalWhisperExecutablePath = LocalWhisperExecutablePathBox.Text.Trim();
         settings.LocalWhisperModelPath = LocalWhisperModelPathBox.Text.Trim();
         settings.LocalWhisperTimeoutSeconds = int.TryParse(LocalWhisperTimeoutBox.Text.Trim(), out var timeoutSeconds)
@@ -677,6 +748,8 @@ public partial class MainWindow : Window
         if (saveToDisk)
         {
             credentialStore.SaveOpenAiApiKey(settings.OpenAiApiKey);
+            credentialStore.SaveOpenRouterApiKey(settings.OpenRouterApiKey);
+            credentialStore.SaveAnthropicApiKey(settings.AnthropicApiKey);
             settingsStore.Save(settings);
         }
     }
@@ -696,6 +769,8 @@ public partial class MainWindow : Window
         settings.EmojisHotkeyId = importedSettings.EmojisHotkeyId;
         settings.OpenAiTranscriptionModel = importedSettings.OpenAiTranscriptionModel;
         settings.OpenAiRewriteModel = importedSettings.OpenAiRewriteModel;
+        settings.OpenRouterRewriteModel = importedSettings.OpenRouterRewriteModel;
+        settings.AnthropicRewriteModel = importedSettings.AnthropicRewriteModel;
         settings.LocalWhisperExecutablePath = importedSettings.LocalWhisperExecutablePath;
         settings.LocalWhisperModelPath = importedSettings.LocalWhisperModelPath;
         settings.LocalWhisperTimeoutSeconds = importedSettings.LocalWhisperTimeoutSeconds;
@@ -709,6 +784,7 @@ public partial class MainWindow : Window
         settings.AutoPaste = importedSettings.AutoPaste;
         settings.SaveHistory = importedSettings.SaveHistory;
         settings.KeepOllamaWarm = importedSettings.KeepOllamaWarm;
+        settings.UpdateManifestUrl = importedSettings.UpdateManifestUrl;
         settings.OpenAiApiKey = existingApiKey;
     }
 
@@ -840,6 +916,10 @@ public partial class MainWindow : Window
         OpenAiKeyHintText.Text = Localizer.T(language, "OpenAiKeyHint");
         OpenAiTranscriptionModelLabelText.Text = Localizer.T(language, "TranscriptionModel");
         OpenAiRewriteModelLabelText.Text = Localizer.T(language, "RewriteModel");
+        OpenRouterHintText.Text = Localizer.T(language, "OpenRouterHint");
+        OpenRouterRewriteModelLabelText.Text = Localizer.T(language, "RewriteModel");
+        AnthropicHintText.Text = Localizer.T(language, "AnthropicHint");
+        AnthropicRewriteModelLabelText.Text = Localizer.T(language, "RewriteModel");
         LocalTranscriptionTitleText.Text = Localizer.T(language, "LocalTranscription");
         LocalTranscriptionHintText.Text = Localizer.T(language, "LocalTranscriptionHint");
         WhisperModelLabelText.Text = Localizer.T(language, "WhisperModel");
@@ -880,6 +960,12 @@ public partial class MainWindow : Window
         ExportSettingsTitleText.Text = Localizer.T(language, "ExportSettings");
         AppVersionTitleText.Text = Localizer.T(language, "Version");
         AppVersionText.Text = $"BlitzText Windows {GetAppVersion()}";
+        CheckUpdatesButton.Content = Localizer.T(language, "CheckUpdates");
+        OpenUpdateButton.Content = Localizer.T(language, "OpenDownload");
+        if (string.IsNullOrWhiteSpace(latestUpdateUrl))
+        {
+            UpdateStatusText.Text = Localizer.T(language, "UpdateNotChecked");
+        }
         ExportSettingsHintText.Text = Localizer.T(language, "ExportSettingsHint");
         ExportSettingsButton.Content = Localizer.T(language, "Export");
         ImportSettingsTitleText.Text = Localizer.T(language, "ImportSettings");
@@ -970,24 +1056,24 @@ public partial class MainWindow : Window
         }
     }
 
-    private void LoadOpenAiApiKey()
+    private void LoadProviderApiKeys()
     {
         var apiKey = credentialStore.ReadOpenAiApiKey();
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
             settings.OpenAiApiKey = apiKey;
-            return;
         }
 
         var legacyApiKey = settingsStore.ReadLegacyOpenAiApiKey();
-        if (string.IsNullOrWhiteSpace(legacyApiKey))
+        if (string.IsNullOrWhiteSpace(settings.OpenAiApiKey) && !string.IsNullOrWhiteSpace(legacyApiKey))
         {
-            return;
+            settings.OpenAiApiKey = legacyApiKey;
+            credentialStore.SaveOpenAiApiKey(legacyApiKey);
+            settingsStore.Save(settings);
         }
 
-        settings.OpenAiApiKey = legacyApiKey;
-        credentialStore.SaveOpenAiApiKey(legacyApiKey);
-        settingsStore.Save(settings);
+        settings.OpenRouterApiKey = credentialStore.ReadOpenRouterApiKey();
+        settings.AnthropicApiKey = credentialStore.ReadAnthropicApiKey();
     }
 
     private async Task WarmOllamaIfEnabledAsync(bool showStatus)

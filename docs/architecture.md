@@ -17,7 +17,7 @@ Transcription and rewriting are separate capabilities:
 - `ITranscriptionProvider`
 - `ITextRewriteProvider`
 
-The first transcription provider is OpenAI. The first rewrite providers are OpenAI and Ollama.
+The first transcription providers are OpenAI and local `whisper.cpp`. Rewrite providers include OpenAI, Ollama, OpenRouter, and Anthropic.
 
 Transcription and rewrite provider enums are intentionally separate. This prevents text-only providers such as Ollama from being selected for audio transcription, and leaves a clean path for local Whisper-style engines.
 

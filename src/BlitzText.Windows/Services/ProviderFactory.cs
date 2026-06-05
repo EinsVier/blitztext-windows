@@ -23,6 +23,8 @@ public sealed class ProviderFactory(AppSettings settings)
         {
             RewriteProviderKind.OpenAI => new OpenAiTextRewriteProvider(settings, httpClient),
             RewriteProviderKind.Ollama => new OllamaTextRewriteProvider(settings, httpClient),
+            RewriteProviderKind.OpenRouter => new OpenRouterTextRewriteProvider(settings, httpClient),
+            RewriteProviderKind.Anthropic => new AnthropicTextRewriteProvider(settings, httpClient),
             _ => new OpenAiTextRewriteProvider(settings, httpClient)
         };
     }
