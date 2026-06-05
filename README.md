@@ -45,7 +45,7 @@ Provider behavior depends on your configuration:
 - OpenAI API key storage in Windows Credential Manager.
 - Custom names/vocabulary context for transcription and rewrite prompts.
 - Editable workflow prompts for improve, calm, and emoji modes.
-- Prompt presets for common improve workflows such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, and technical text.
+- Prompt presets for common improve workflows such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, AI prompts, AI image prompts, music prompts, and technical text.
 - Workflows:
   - `Transcribe`
   - `Improve`

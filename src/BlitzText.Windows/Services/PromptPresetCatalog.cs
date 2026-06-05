@@ -67,6 +67,24 @@ public static class PromptPresetCatalog
             "Kuerze den diktierten Rohtext deutlich und formuliere ihn professionell. Erhalte die Kernaussage, konkrete Bitten, Fakten, Namen, Zahlen und Termine. Entferne Wiederholungen und Fuellwoerter. Erfinde keine neuen Inhalte.",
             "Shorten the dictated draft substantially and make it professional. Preserve the core message, concrete requests, facts, names, numbers, and dates. Remove repetition and filler. Do not invent new content."),
         new(
+            "ai-prompt",
+            "KI-Prompt",
+            "AI prompt",
+            "Formuliere den diktierten Rohtext als klaren Prompt fuer eine KI. Beschreibe Ziel, Kontext, gewuenschtes Ergebnis, Ausgabeformat, wichtige Details und Einschraenkungen. Erhalte Fakten, Namen, Zahlen und konkrete Vorgaben exakt. Wenn Informationen fehlen, markiere sie als kurze Rueckfrage oder Platzhalter. Erfinde keine neuen Fakten.",
+            "Turn the dictated draft into a clear prompt for an AI assistant. Describe the goal, context, desired result, output format, important details, and constraints. Preserve facts, names, numbers, and concrete requirements exactly. If information is missing, mark it as a short question or placeholder. Do not invent new facts."),
+        new(
+            "image-prompt",
+            "KI-Bildprompt",
+            "AI image prompt",
+            "Formuliere den diktierten Rohtext als strukturierten Prompt fuer eine Bild-KI. Beschreibe Motiv, Szene, Stil, Stimmung, Licht, Perspektive, Bildausschnitt, Farben, Details und Format, soweit genannt. Erhalte Namen, Marken, Texte im Bild und konkrete Vorgaben exakt. Erfinde keine wichtigen Bildelemente; fehlende Angaben als optionale Hinweise markieren.",
+            "Turn the dictated draft into a structured prompt for an image AI. Describe subject, scene, style, mood, lighting, perspective, framing, colors, details, and format where mentioned. Preserve names, brands, text in the image, and concrete requirements exactly. Do not invent important visual elements; mark missing details as optional suggestions."),
+        new(
+            "music-prompt",
+            "Musik-Prompt",
+            "Music prompt",
+            "Formuliere den diktierten Rohtext als Prompt fuer eine Musik-KI. Beschreibe Genre, Stimmung, Tempo, Instrumente, Gesang, Sprache, Songstruktur, Energie, Klangbild und Einsatzkontext, soweit genannt. Erhalte konkrete Vorgaben exakt. Erfinde keine Lyrics; wenn Text oder Refrain fehlen, markiere sie als Platzhalter oder optionale Richtung.",
+            "Turn the dictated draft into a prompt for a music AI. Describe genre, mood, tempo, instruments, vocals, language, song structure, energy, sound, and use case where mentioned. Preserve concrete requirements exactly. Do not invent lyrics; if lyrics or a chorus are missing, mark them as placeholders or optional direction."),
+        new(
             "technical",
             "Technischer Text",
             "Technical text",
