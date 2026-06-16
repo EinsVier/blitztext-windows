@@ -83,6 +83,16 @@ dotnet build
 dotnet run --project src\BlitzText.Windows
 ```
 
+## Install With winget
+
+BlitzText Windows is available through the Windows Package Manager:
+
+```powershell
+winget install --id EinsVier.BlitzText -e
+```
+
+winget installs the WiX MSI package and resolves the required .NET 8 Windows Desktop Runtime dependency.
+
 ## Publish
 
 Create a local runnable build:

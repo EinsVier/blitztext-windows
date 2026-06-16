@@ -9,7 +9,17 @@ Die urspruengliche Blitztext-Idee stammt von Christoph Magnussen:
 
 Diese Windows-App ist eine eigenstaendige native Windows-Umsetzung, inspiriert von dieser Workflow-Idee.
 
-## Empfohlen: ZIP-Paket
+## Empfohlen: winget
+
+BlitzText Windows ist im Windows Package Manager verfuegbar:
+
+```powershell
+winget install --id EinsVier.BlitzText -e
+```
+
+winget installiert das WiX-MSI und beruecksichtigt die benoetigte .NET 8 Windows Desktop Runtime.
+
+## Alternative: ZIP-Paket
 
 1. ZIP entpacken.
 2. PowerShell im entpackten Ordner oeffnen.
