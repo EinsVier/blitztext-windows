@@ -22,6 +22,8 @@
         <SolidColorBrush x:Key="StatusInfoBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="StatusSuccessBrush" Color="#16A34A" />
         <SolidColorBrush x:Key="StatusErrorBrush" Color="#DC2626" />
+        <SolidColorBrush x:Key="ActiveBadgeBackgroundBrush" Color="#DCFCE7" />
+        <SolidColorBrush x:Key="ActiveBadgeForegroundBrush" Color="#166534" />
         <SolidColorBrush x:Key="TooltipBackgroundBrush" Color="#111827" />
         <SolidColorBrush x:Key="TooltipForegroundBrush" Color="#FFFFFF" />
         <Style TargetType="TextBlock">
@@ -334,6 +336,30 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="ActiveProviderBadgeStyle" TargetType="Label">
+            <Setter Property="Content" Value="Aktiv" />
+            <Setter Property="Background" Value="{DynamicResource ActiveBadgeBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ActiveBadgeForegroundBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="8,2,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Label">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="9"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -426,6 +452,7 @@
                                 <StackPanel Grid.Column="0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="OpenAI" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        <Label x:Name="OpenAiActiveBadge" Style="{StaticResource ActiveProviderBadgeStyle}" />
                                         <Label x:Name="OpenAiHelpText" Style="{StaticResource HelpTextStyle}" />
                                     </StackPanel>
                                     <TextBlock x:Name="OpenAiKeyHintText" Text="Der API-Key wird im Windows Credential Manager gespeichert." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />
@@ -441,6 +468,7 @@
 
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="OpenRouter" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        <Label x:Name="OpenRouterActiveBadge" Style="{StaticResource ActiveProviderBadgeStyle}" />
                                         <Label x:Name="OpenRouterHelpText" Style="{StaticResource HelpTextStyle}" />
                                     </StackPanel>
                                     <TextBlock x:Name="OpenRouterHintText" Text="Optionaler Rewrite-Provider ueber OpenRouter." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />
@@ -481,6 +509,7 @@
                                 <StackPanel Grid.Column="2">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="Ollama" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        <Label x:Name="OllamaActiveBadge" Style="{StaticResource ActiveProviderBadgeStyle}" />
                                         <Label x:Name="OllamaHelpText" Style="{StaticResource HelpTextStyle}" />
                                     </StackPanel>
                                     <TextBlock x:Name="OllamaHintText" Text="Lokaler oder Netzwerk-Ollama-Server fuer Umschreiben." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />
@@ -495,6 +524,7 @@
 
                                     <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
                                         <TextBlock Text="Anthropic" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        <Label x:Name="AnthropicActiveBadge" Style="{StaticResource ActiveProviderBadgeStyle}" />
                                         <Label x:Name="AnthropicHelpText" Style="{StaticResource HelpTextStyle}" />
                                     </StackPanel>
                                     <TextBlock x:Name="AnthropicHintText" Text="Optionaler Rewrite-Provider fuer Claude-Modelle." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />

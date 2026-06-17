@@ -177,6 +177,7 @@ public partial class MainWindow : Window
         ApplyTheme();
         ApplyLocalization();
         UpdateRecordButton();
+        UpdateActiveProviderBadges();
     }
 
     private async void RecordButton_Click(object sender, RoutedEventArgs e)
@@ -681,6 +682,7 @@ public partial class MainWindow : Window
             ApplyTheme();
             ApplyLocalization();
             UpdateRecordButton();
+            UpdateActiveProviderBadges();
             ScheduleAutoSave();
         }
     }
@@ -1007,6 +1009,10 @@ public partial class MainWindow : Window
         OllamaHintText.Text = Localizer.T(language, "OllamaHint");
         OllamaRewriteModelLabelText.Text = Localizer.T(language, "RewriteModel");
         TestOllamaButton.Content = Localizer.T(language, "TestOllama");
+        SetActiveBadgeText(OpenAiActiveBadge, language);
+        SetActiveBadgeText(OpenRouterActiveBadge, language);
+        SetActiveBadgeText(OllamaActiveBadge, language);
+        SetActiveBadgeText(AnthropicActiveBadge, language);
 
         TranscribeHotkeyLabelText.Text = Localizer.T(language, "TranscribeOnly");
         ImproveHotkeyLabelText.Text = Localizer.T(language, "Improve");
@@ -1074,6 +1080,20 @@ public partial class MainWindow : Window
         ResultsHelpText.ToolTip = Localizer.T(language, "HelpResults");
     }
 
+    private void SetActiveBadgeText(System.Windows.Controls.Label badge, AppLanguage language)
+    {
+        badge.Content = Localizer.T(language, "ActiveProvider");
+        badge.ToolTip = Localizer.T(language, "ActiveProviderTooltip");
+    }
+
+    private void UpdateActiveProviderBadges()
+    {
+        OpenAiActiveBadge.Visibility = settings.RewriteProvider == RewriteProviderKind.OpenAI ? Visibility.Visible : Visibility.Collapsed;
+        OpenRouterActiveBadge.Visibility = settings.RewriteProvider == RewriteProviderKind.OpenRouter ? Visibility.Visible : Visibility.Collapsed;
+        OllamaActiveBadge.Visibility = settings.RewriteProvider == RewriteProviderKind.Ollama ? Visibility.Visible : Visibility.Collapsed;
+        AnthropicActiveBadge.Visibility = settings.RewriteProvider == RewriteProviderKind.Anthropic ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void ApplyTheme()
     {
         var useDarkTheme = settings.AppTheme switch
@@ -1100,6 +1120,8 @@ public partial class MainWindow : Window
             SetThemeBrush("StatusInfoBrush", "#60A5FA");
             SetThemeBrush("StatusSuccessBrush", "#22C55E");
             SetThemeBrush("StatusErrorBrush", "#F87171");
+            SetThemeBrush("ActiveBadgeBackgroundBrush", "#14532D");
+            SetThemeBrush("ActiveBadgeForegroundBrush", "#DCFCE7");
             SetThemeBrush("TooltipBackgroundBrush", "#E5E7EB");
             SetThemeBrush("TooltipForegroundBrush", "#111827");
             ResetStatusHighlight();
@@ -1121,6 +1143,8 @@ public partial class MainWindow : Window
         SetThemeBrush("StatusInfoBrush", "#2563EB");
         SetThemeBrush("StatusSuccessBrush", "#16A34A");
         SetThemeBrush("StatusErrorBrush", "#DC2626");
+        SetThemeBrush("ActiveBadgeBackgroundBrush", "#DCFCE7");
+        SetThemeBrush("ActiveBadgeForegroundBrush", "#166534");
         SetThemeBrush("TooltipBackgroundBrush", "#111827");
         SetThemeBrush("TooltipForegroundBrush", "#FFFFFF");
         ResetStatusHighlight();

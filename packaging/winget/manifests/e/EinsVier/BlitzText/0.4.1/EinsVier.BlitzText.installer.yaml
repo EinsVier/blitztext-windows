@@ -16,11 +16,11 @@ Dependencies:
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/EinsVier/blitztext-windows/releases/download/v0.4.1/BlitzText-Windows-0.4.1-win-x64.msi
-  InstallerSha256: D29ECC8DD158993A763EFCA618612E0EE9BDB21ECA9FAA6DC14C5B181EFE8EBC
-  ProductCode: '{38B26DB8-4C2B-4EAB-A0E0-1C69A4E4AE09}'
+  InstallerSha256: C2B90547CBD456619CD83634819A09754928DE6D64ADE9C47D1B9806AE3E30A9
+  ProductCode: '{EA2547B5-CE2C-42F0-A19B-34809AA152D6}'
   AppsAndFeaturesEntries:
   - DisplayName: BlitzText Windows
     Publisher: EinsVier
-    ProductCode: '{38B26DB8-4C2B-4EAB-A0E0-1C69A4E4AE09}'
+    ProductCode: '{EA2547B5-CE2C-42F0-A19B-34809AA152D6}'
 ManifestType: installer
 ManifestVersion: 1.10.0
