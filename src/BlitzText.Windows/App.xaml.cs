@@ -28,7 +28,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        notifyIcon?.Dispose();
+        DisposeTrayIcon();
         base.OnExit(e);
     }
 
@@ -54,8 +54,34 @@ public partial class App : System.Windows.Application
         }
 
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(language == Models.AppLanguage.English ? "Exit" : "Beenden", null, (_, _) => Shutdown());
+        menu.Items.Add(language == Models.AppLanguage.English ? "Exit" : "Beenden", null, (_, _) => ExitApplication());
         return menu;
+    }
+
+    private void ExitApplication()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(ExitApplication);
+            return;
+        }
+
+        DisposeTrayIcon();
+        mainWindow?.Close();
+        mainWindow = null;
+        Shutdown();
+    }
+
+    private void DisposeTrayIcon()
+    {
+        if (notifyIcon is null)
+        {
+            return;
+        }
+
+        notifyIcon.Visible = false;
+        notifyIcon.Dispose();
+        notifyIcon = null;
     }
 
     private void ShowMainWindow()

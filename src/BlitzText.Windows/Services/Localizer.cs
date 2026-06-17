@@ -13,6 +13,7 @@ public static class Localizer
         ["Transcription"] = "Transkription",
         ["Rewrite"] = "Umschreiben",
         ["AppLanguage"] = "App-Sprache",
+        ["AppTheme"] = "Theme",
         ["DictationLanguage"] = "Diktatsprache",
         ["AutoPaste"] = "Nach Abschluss automatisch einfuegen",
         ["KeepOllamaWarm"] = "Ollama warmhalten",
@@ -83,7 +84,23 @@ public static class Localizer
         ["Footer"] = "Hotkey druecken, sprechen, Hotkey erneut druecken. Das Ergebnis landet in der Zwischenablage oder direkt im Ziel-Fenster.",
         ["StartRecording"] = "Aufnahme starten",
         ["StopRecording"] = "Aufnahme stoppen",
-        ["Cancel"] = "Abbrechen"
+        ["Cancel"] = "Abbrechen",
+        ["HelpControls"] = "Waehle Standard-Workflow, Provider, Sprache und Verhalten fuer Aufnahme und Einfuegen.",
+        ["HelpAutoPaste"] = "Fuegt das Ergebnis in das Ziel-Fenster ein und stellt danach die vorherige Zwischenablage wieder her.",
+        ["HelpKeepOllamaWarm"] = "Sendet bei Ollama eine kleine Warmhalte-Anfrage, damit lokale Modelle schneller antworten.",
+        ["HelpOpenAi"] = "OpenAI kann Audio transkribieren und Texte umschreiben. Der API-Key bleibt im Windows Credential Manager.",
+        ["HelpOpenRouter"] = "OpenRouter wird nur fuer Rewrite-Workflows verwendet und kann verschiedene Textmodelle ansprechen.",
+        ["HelpLocalTranscription"] = "Nutzt ein lokales whisper.cpp-Programm und Modell fuer Speech-to-Text ohne Online-Transkription.",
+        ["HelpOllama"] = "Ollama wird fuer lokales Umschreiben verwendet. Die Transkription kommt weiterhin von OpenAI oder Local Whisper.",
+        ["HelpAnthropic"] = "Anthropic/Claude wird als optionaler Rewrite-Provider genutzt; Audio wird nicht an Anthropic transkribiert.",
+        ["HelpHotkeys"] = "Jeder Workflow kann einen eigenen globalen Hotkey haben. Erkennen oeffnet einen kurzen Hotkey-Testdialog.",
+        ["HelpPromptPresets"] = "Vorlagen ersetzen den Improve-Prompt mit einem passenden Schreibstil oder Ausgabeformat.",
+        ["HelpCustomNames"] = "Eigennamen und Fachbegriffe helfen der Transkription und dem Umschreiben bei der richtigen Schreibweise.",
+        ["HelpWorkflowPrompts"] = "Diese Prompts steuern, wie BlitzText Text verbessert, entschaerft oder mit Emojis ergaenzt.",
+        ["HelpUpdates"] = "Prueft nur auf eine neue Version und oeffnet den Download. BlitzText installiert keine Updates im Hintergrund.",
+        ["HelpBackup"] = "Exportiert nicht geheime Einstellungen wie Provider, Hotkeys und Prompts. API-Keys bleiben lokal.",
+        ["HelpImportSettings"] = "Importiert eine JSON-Sicherung. Bereits gespeicherte API-Keys werden dadurch nicht ersetzt.",
+        ["HelpResults"] = "Zeigt das letzte Ergebnis und den lokalen Verlauf, wenn Verlauf speichern aktiviert ist."
     };
 
     private static readonly IReadOnlyDictionary<string, string> English = new Dictionary<string, string>
@@ -95,6 +112,7 @@ public static class Localizer
         ["Transcription"] = "Transcription",
         ["Rewrite"] = "Rewrite",
         ["AppLanguage"] = "App language",
+        ["AppTheme"] = "Theme",
         ["DictationLanguage"] = "Dictation language",
         ["AutoPaste"] = "Automatically paste after completion",
         ["KeepOllamaWarm"] = "Keep Ollama warm",
@@ -165,7 +183,23 @@ public static class Localizer
         ["Footer"] = "Press the hotkey, speak, press it again. The result lands in the clipboard or directly in the target window.",
         ["StartRecording"] = "Start recording",
         ["StopRecording"] = "Stop recording",
-        ["Cancel"] = "Cancel"
+        ["Cancel"] = "Cancel",
+        ["HelpControls"] = "Choose the default workflow, providers, language, and recording/paste behavior.",
+        ["HelpAutoPaste"] = "Pastes the result into the target window and then restores the previous clipboard contents.",
+        ["HelpKeepOllamaWarm"] = "Sends a tiny keep-alive request to Ollama so local models can respond faster.",
+        ["HelpOpenAi"] = "OpenAI can transcribe audio and rewrite text. The API key stays in Windows Credential Manager.",
+        ["HelpOpenRouter"] = "OpenRouter is used only for rewrite workflows and can reach different text models.",
+        ["HelpLocalTranscription"] = "Uses a local whisper.cpp executable and model for speech-to-text without online transcription.",
+        ["HelpOllama"] = "Ollama is used for local rewriting. Transcription still comes from OpenAI or Local Whisper.",
+        ["HelpAnthropic"] = "Anthropic/Claude is an optional rewrite provider; audio is not transcribed through Anthropic.",
+        ["HelpHotkeys"] = "Each workflow can have its own global hotkey. Detect opens a short hotkey capture dialog.",
+        ["HelpPromptPresets"] = "Presets replace the Improve prompt with a matching writing style or output format.",
+        ["HelpCustomNames"] = "Custom names and terms help transcription and rewriting keep the right spelling.",
+        ["HelpWorkflowPrompts"] = "These prompts control how BlitzText improves, calms down, or adds emojis to text.",
+        ["HelpUpdates"] = "Checks for a new version and opens the download. BlitzText does not install updates in the background.",
+        ["HelpBackup"] = "Exports non-secret settings such as providers, hotkeys, and prompts. API keys stay local.",
+        ["HelpImportSettings"] = "Imports a JSON backup. Existing saved API keys are not replaced.",
+        ["HelpResults"] = "Shows the latest result and local history when Save history is enabled."
     };
 
     public static string T(AppLanguage language, string key)

@@ -41,7 +41,7 @@ In the setup project's **File System** editor:
 - Optional: create a desktop shortcut.
 - Set product metadata:
   - ProductName: `BlitzText Windows`
-  - Manufacturer: `Micha`
-  - Version: `0.4.0`
+  - Manufacturer: `EinsVier`
+  - Version: `0.4.1`
 
 Avoid adding the OpenAI API key or user settings to the installer. Those remain under `%APPDATA%\BlitzText` and Windows Credential Manager.

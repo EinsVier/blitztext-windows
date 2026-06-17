@@ -36,6 +36,23 @@ public static class LanguageDisplay
             ];
     }
 
+    public static IReadOnlyList<DisplayOption<AppTheme>> AppThemeOptions(AppLanguage appLanguage)
+    {
+        return appLanguage == AppLanguage.English
+            ?
+            [
+                new(AppTheme.System, "System"),
+                new(AppTheme.Light, "Light"),
+                new(AppTheme.Dark, "Dark")
+            ]
+            :
+            [
+                new(AppTheme.System, "System"),
+                new(AppTheme.Light, "Hell"),
+                new(AppTheme.Dark, "Dunkel")
+            ];
+    }
+
     public static DisplayOption<AppLanguage> FindAppLanguage(AppLanguage value, AppLanguage appLanguage)
     {
         return AppLanguageOptions(appLanguage).FirstOrDefault(option => option.Value == value) ?? AppLanguageOptions(appLanguage)[0];
@@ -44,6 +61,11 @@ public static class LanguageDisplay
     public static DisplayOption<DictationLanguage> FindDictationLanguage(DictationLanguage value, AppLanguage appLanguage)
     {
         return DictationLanguageOptions(appLanguage).FirstOrDefault(option => option.Value == value) ?? DictationLanguageOptions(appLanguage)[0];
+    }
+
+    public static DisplayOption<AppTheme> FindAppTheme(AppTheme value, AppLanguage appLanguage)
+    {
+        return AppThemeOptions(appLanguage).FirstOrDefault(option => option.Value == value) ?? AppThemeOptions(appLanguage)[0];
     }
 
     public static string ToWhisperCode(DictationLanguage language)

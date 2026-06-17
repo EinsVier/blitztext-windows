@@ -93,6 +93,12 @@ winget install --id EinsVier.BlitzText -e
 
 winget installs the WiX MSI package and resolves the required .NET 8 Windows Desktop Runtime dependency.
 
+Install to a custom location:
+
+```powershell
+winget install --id EinsVier.BlitzText -e --location "C:\Apps\BlitzText"
+```
+
 ## Publish
 
 Create a local runnable build:
@@ -153,7 +159,7 @@ Manifest format:
 
 ```json
 {
-  "version": "0.4.0",
+  "version": "0.4.1",
   "url": "https://github.com/EinsVier/blitztext-windows/releases/latest",
   "notesUrl": "https://github.com/EinsVier/blitztext-windows/releases/latest"
 }
@@ -207,6 +213,12 @@ Install without autostart:
 
 ```powershell
 .\scripts\install-user.ps1 -NoStartup
+```
+
+Install to a custom location:
+
+```powershell
+.\scripts\install-user.ps1 -InstallDir "C:\Apps\BlitzText"
 ```
 
 Install or update without launching the app afterwards:

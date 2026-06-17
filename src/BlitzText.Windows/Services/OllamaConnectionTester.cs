@@ -4,6 +4,8 @@ using System.Text.Json;
 
 namespace BlitzText.Windows.Services;
 
+public sealed record OllamaTestResult(string Message, IReadOnlyList<string> Models, bool ModelFound);
+
 public sealed class OllamaConnectionTester
 {
     private readonly HttpClient httpClient = new()
@@ -11,16 +13,16 @@ public sealed class OllamaConnectionTester
         Timeout = TimeSpan.FromMinutes(2)
     };
 
-    public async Task<string> TestAsync(string baseUrl, string model, CancellationToken cancellationToken)
+    public async Task<OllamaTestResult> TestAsync(string baseUrl, string model, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            return "Ollama URL fehlt.";
+            return new OllamaTestResult("Ollama URL fehlt.", [], false);
         }
 
         if (string.IsNullOrWhiteSpace(model))
         {
-            return "Ollama Modell fehlt.";
+            return new OllamaTestResult("Ollama Modell fehlt.", [], false);
         }
 
         var endpoint = $"{baseUrl.TrimEnd('/')}/api/tags";
@@ -29,7 +31,7 @@ public sealed class OllamaConnectionTester
 
         if (!response.IsSuccessStatusCode)
         {
-            return $"Ollama antwortet mit {response.StatusCode}: {responseText}";
+            return new OllamaTestResult($"Ollama antwortet mit {response.StatusCode}: {responseText}", [], false);
         }
 
         using var document = JsonDocument.Parse(responseText);
@@ -38,15 +40,16 @@ public sealed class OllamaConnectionTester
             .Select(item => item.GetProperty("name").GetString())
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Cast<string>()
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (models.Any(name => name.Equals(model, StringComparison.OrdinalIgnoreCase)))
         {
-            return $"Ollama OK. Modell gefunden: {model}";
+            return new OllamaTestResult($"Ollama OK. Modell gefunden: {model}", models, true);
         }
 
         var preview = models.Length == 0 ? "keine Modelle" : string.Join(", ", models.Take(6));
-        return $"Ollama erreichbar, aber Modell '{model}' wurde nicht gefunden. Gefunden: {preview}";
+        return new OllamaTestResult($"Ollama erreichbar, aber Modell '{model}' wurde nicht gefunden. Gefunden: {preview}", models, false);
     }
 
     public async Task<string> WarmAsync(string baseUrl, string model, CancellationToken cancellationToken)

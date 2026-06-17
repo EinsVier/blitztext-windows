@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using BlitzText.Windows.Models;
@@ -25,12 +27,16 @@ public partial class MainWindow : Window
     private readonly RecordingIndicatorWindow recordingIndicator = new();
     private readonly TargetWindowService targetWindowService;
     private readonly DispatcherTimer autoSaveTimer;
+    private readonly DispatcherTimer statusHighlightTimer;
     private readonly ObservableCollection<HistoryEntry> historyEntries = [];
+    private readonly ObservableCollection<string> ollamaRewriteModels = [];
     private readonly List<HistoryEntry> allHistoryEntries = [];
     private bool isLoading;
     private bool isHotkeyReady;
     private bool isProcessing;
     private bool isRefreshingWhisperModels;
+    private bool isRefreshingOllamaModels;
+    private bool isDisposed;
     private string latestUpdateUrl = "";
     private string selectedPromptPresetId = "general";
     private WorkflowKind activeWorkflow;
@@ -50,21 +56,45 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(700)
         };
         autoSaveTimer.Tick += (_, _) => AutoSaveSettings();
+        statusHighlightTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(10)
+        };
+        statusHighlightTimer.Tick += (_, _) => ResetStatusHighlight();
 
         InitializeComponent();
+        DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty, typeof(System.Windows.Controls.TextBlock))
+            .AddValueChanged(StatusText, (_, _) => HighlightStatusChange(StatusText.Text));
         HistoryList.ItemsSource = historyEntries;
+        OllamaRewriteModelCombo.ItemsSource = ollamaRewriteModels;
+        OllamaRewriteModelCombo.AddHandler(
+            System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+            new System.Windows.Controls.TextChangedEventHandler(OllamaRewriteModelCombo_TextChanged));
         LoadHistoryEntries();
         LoadUiFromSettings();
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        DisposeResources();
+        base.OnClosed(e);
+    }
+
+    private void DisposeResources()
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+        workflowCancellation?.Cancel();
         audioRecorder.Dispose();
         hotkeyService.Dispose();
         autoSaveTimer.Stop();
+        statusHighlightTimer.Stop();
         recordingIndicator.Close();
         workflowCancellation?.Dispose();
-        base.OnClosed(e);
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -101,6 +131,7 @@ public partial class MainWindow : Window
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
+        AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
         TranscriptionProviderCombo.ItemsSource = Enum.GetValues<TranscriptionProviderKind>();
         RewriteProviderCombo.ItemsSource = Enum.GetValues<RewriteProviderKind>();
@@ -112,6 +143,7 @@ public partial class MainWindow : Window
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(settings.DefaultWorkflow, settings.AppLanguage);
         SelectPromptPreset(selectedPromptPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(settings.AppLanguage, settings.AppLanguage);
+        AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(settings.AppTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(settings.DictationLanguage, settings.AppLanguage);
         TranscriptionProviderCombo.SelectedItem = settings.TranscriptionProvider;
         RewriteProviderCombo.SelectedItem = settings.RewriteProvider;
@@ -130,7 +162,8 @@ public partial class MainWindow : Window
         LocalWhisperModelPathBox.Text = settings.LocalWhisperModelPath;
         LocalWhisperTimeoutBox.Text = settings.LocalWhisperTimeoutSeconds.ToString();
         OllamaBaseUrlBox.Text = settings.OllamaBaseUrl;
-        OllamaRewriteModelBox.Text = settings.OllamaRewriteModel;
+        RefreshOllamaModelOptions([settings.OllamaRewriteModel]);
+        OllamaRewriteModelCombo.Text = settings.OllamaRewriteModel;
         CustomNamesBox.Text = settings.CustomNames;
         TranscriptionPromptBox.Text = settings.TranscriptionPrompt;
         ImprovePromptBox.Text = settings.ImprovePrompt;
@@ -141,6 +174,7 @@ public partial class MainWindow : Window
         KeepOllamaWarmCheckBox.IsChecked = settings.KeepOllamaWarm;
         RefreshWhisperModelOptions();
         isLoading = false;
+        ApplyTheme();
         ApplyLocalization();
         UpdateRecordButton();
     }
@@ -202,25 +236,33 @@ public partial class MainWindow : Window
             {
                 AddHistoryEntry(result, activeWorkflow);
             }
-            ClipboardPasteService.Copy(result);
 
             if (settings.AutoPaste)
             {
                 if (targetWindowService.Activate(activeTargetWindow))
                 {
-                    await ClipboardPasteService.PasteAsync();
+                    var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(result, activeTargetWindow.Handle);
                     StatusText.Text = string.IsNullOrWhiteSpace(activeTargetWindow.Title)
                         ? (settings.AppLanguage == AppLanguage.English ? "Done. Result was pasted." : "Fertig. Ergebnis wurde eingefuegt.")
                         : (settings.AppLanguage == AppLanguage.English ? $"Done. Result was pasted into: {activeTargetWindow.Title}" : $"Fertig. Ergebnis wurde eingefuegt in: {activeTargetWindow.Title}");
+
+                    if (!clipboardRestored)
+                    {
+                        StatusText.Text += settings.AppLanguage == AppLanguage.English
+                            ? " Clipboard restore failed."
+                            : " Zwischenablage konnte nicht wiederhergestellt werden.";
+                    }
+
                     return;
                 }
 
                 StatusText.Text = settings.AppLanguage == AppLanguage.English
-                    ? "Done. Target window not found; result is in the clipboard."
-                    : "Fertig. Ziel-Fenster nicht gefunden; Ergebnis ist in der Zwischenablage.";
+                    ? "Done. Target window not found; clipboard was left unchanged."
+                    : "Fertig. Ziel-Fenster nicht gefunden; Zwischenablage blieb unveraendert.";
                 return;
             }
 
+            ClipboardPasteService.Copy(result);
             StatusText.Text = settings.AppLanguage == AppLanguage.English
                 ? "Done. Result was copied to the clipboard."
                 : "Fertig. Ergebnis wurde in die Zwischenablage kopiert.";
@@ -477,9 +519,11 @@ public partial class MainWindow : Window
                 settings.OllamaBaseUrl,
                 settings.OllamaRewriteModel,
                 CancellationToken.None);
-            StatusText.Text = result;
+            RefreshOllamaModelOptions(result.Models);
+            OllamaRewriteModelCombo.Text = settings.OllamaRewriteModel;
+            StatusText.Text = result.Message;
 
-            if (settings.KeepOllamaWarm && result.StartsWith("Ollama OK.", StringComparison.Ordinal))
+            if (settings.KeepOllamaWarm && result.ModelFound)
             {
                 StatusText.Text = "Ollama OK. Halte Modell warm...";
                 StatusText.Text = await ollamaConnectionTester.WarmAsync(
@@ -496,6 +540,29 @@ public partial class MainWindow : Window
         {
             TestOllamaButton.IsEnabled = true;
         }
+    }
+
+    private void OllamaRewriteModelCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (isLoading || isRefreshingOllamaModels || OllamaRewriteModelCombo.SelectedItem is not string model)
+        {
+            return;
+        }
+
+        OllamaRewriteModelCombo.Text = model;
+        SaveSettingsFromUi(saveToDisk: false);
+        ScheduleAutoSave();
+    }
+
+    private void OllamaRewriteModelCombo_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (isLoading || isRefreshingOllamaModels)
+        {
+            return;
+        }
+
+        SaveSettingsFromUi(saveToDisk: false);
+        ScheduleAutoSave();
     }
 
     private void BrowseWhisperExeButton_Click(object sender, RoutedEventArgs e)
@@ -611,6 +678,7 @@ public partial class MainWindow : Window
         {
             SaveSettingsFromUi(saveToDisk: false);
             RefreshLocalizedOptionSources();
+            ApplyTheme();
             ApplyLocalization();
             UpdateRecordButton();
             ScheduleAutoSave();
@@ -701,6 +769,9 @@ public partial class MainWindow : Window
         settings.AppLanguage = AppLanguageCombo.SelectedItem is DisplayOption<AppLanguage> appLanguage
             ? appLanguage.Value
             : settings.AppLanguage;
+        settings.AppTheme = AppThemeCombo.SelectedItem is DisplayOption<AppTheme> appTheme
+            ? appTheme.Value
+            : settings.AppTheme;
         settings.DictationLanguage = DictationLanguageCombo.SelectedItem is DisplayOption<DictationLanguage> dictationLanguage
             ? dictationLanguage.Value
             : settings.DictationLanguage;
@@ -735,7 +806,7 @@ public partial class MainWindow : Window
             ? timeoutSeconds
             : settings.LocalWhisperTimeoutSeconds;
         settings.OllamaBaseUrl = OllamaBaseUrlBox.Text.Trim();
-        settings.OllamaRewriteModel = OllamaRewriteModelBox.Text.Trim();
+        settings.OllamaRewriteModel = OllamaRewriteModelCombo.Text.Trim();
         settings.CustomNames = CustomNamesBox.Text.Trim();
         settings.TranscriptionPrompt = TranscriptionPromptBox.Text.Trim();
         settings.ImprovePrompt = ImprovePromptBox.Text.Trim();
@@ -760,6 +831,7 @@ public partial class MainWindow : Window
 
         settings.DefaultWorkflow = importedSettings.DefaultWorkflow;
         settings.AppLanguage = importedSettings.AppLanguage;
+        settings.AppTheme = importedSettings.AppTheme;
         settings.DictationLanguage = importedSettings.DictationLanguage;
         settings.TranscriptionProvider = importedSettings.TranscriptionProvider;
         settings.RewriteProvider = importedSettings.RewriteProvider;
@@ -849,6 +921,7 @@ public partial class MainWindow : Window
     {
         var selectedWorkflow = settings.DefaultWorkflow;
         var selectedAppLanguage = settings.AppLanguage;
+        var selectedTheme = settings.AppTheme;
         var selectedDictationLanguage = settings.DictationLanguage;
         var selectedPresetId = GetSelectedPromptPresetId();
 
@@ -856,10 +929,12 @@ public partial class MainWindow : Window
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
+        AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedWorkflow, settings.AppLanguage);
         SelectPromptPreset(selectedPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(selectedAppLanguage, settings.AppLanguage);
+        AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(selectedTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(selectedDictationLanguage, settings.AppLanguage);
         isLoading = false;
     }
@@ -900,6 +975,7 @@ public partial class MainWindow : Window
         TranscriptionLabelText.Text = Localizer.T(language, "Transcription");
         RewriteLabelText.Text = Localizer.T(language, "Rewrite");
         AppLanguageLabelText.Text = Localizer.T(language, "AppLanguage");
+        AppThemeLabelText.Text = Localizer.T(language, "AppTheme");
         DictationLanguageLabelText.Text = Localizer.T(language, "DictationLanguage");
         AutoPasteCheckBox.Content = Localizer.T(language, "AutoPaste");
         SaveHistoryCheckBox.Content = Localizer.T(language, "SaveHistory");
@@ -979,6 +1055,93 @@ public partial class MainWindow : Window
         HistorySearchBox.ToolTip = Localizer.T(language, "SearchHistory");
         ResultsTitleText.Text = Localizer.T(language, "Results");
         FooterText.Text = Localizer.T(language, "Footer");
+
+        ControlsHelpText.ToolTip = Localizer.T(language, "HelpControls");
+        AutoPasteHelpText.ToolTip = Localizer.T(language, "HelpAutoPaste");
+        KeepOllamaWarmHelpText.ToolTip = Localizer.T(language, "HelpKeepOllamaWarm");
+        OpenAiHelpText.ToolTip = Localizer.T(language, "HelpOpenAi");
+        OpenRouterHelpText.ToolTip = Localizer.T(language, "HelpOpenRouter");
+        LocalTranscriptionHelpText.ToolTip = Localizer.T(language, "HelpLocalTranscription");
+        OllamaHelpText.ToolTip = Localizer.T(language, "HelpOllama");
+        AnthropicHelpText.ToolTip = Localizer.T(language, "HelpAnthropic");
+        HotkeysHelpText.ToolTip = Localizer.T(language, "HelpHotkeys");
+        PromptPresetsHelpText.ToolTip = Localizer.T(language, "HelpPromptPresets");
+        CustomNamesHelpText.ToolTip = Localizer.T(language, "HelpCustomNames");
+        WorkflowPromptsHelpText.ToolTip = Localizer.T(language, "HelpWorkflowPrompts");
+        UpdatesHelpText.ToolTip = Localizer.T(language, "HelpUpdates");
+        BackupHelpText.ToolTip = Localizer.T(language, "HelpBackup");
+        ImportSettingsHelpText.ToolTip = Localizer.T(language, "HelpImportSettings");
+        ResultsHelpText.ToolTip = Localizer.T(language, "HelpResults");
+    }
+
+    private void ApplyTheme()
+    {
+        var useDarkTheme = settings.AppTheme switch
+        {
+            AppTheme.Dark => true,
+            AppTheme.Light => false,
+            _ => IsSystemDarkTheme()
+        };
+
+        if (useDarkTheme)
+        {
+            SetThemeBrush("AppBackgroundBrush", "#0F172A");
+            SetThemeBrush("CardBackgroundBrush", "#111827");
+            SetThemeBrush("BorderBrushColor", "#334155");
+            SetThemeBrush("PrimaryTextBrush", "#F8FAFC");
+            SetThemeBrush("BodyTextBrush", "#CBD5E1");
+            SetThemeBrush("SecondaryTextBrush", "#94A3B8");
+            SetThemeBrush("MutedTextBrush", "#94A3B8");
+            SetThemeBrush("InputBackgroundBrush", "#0B1220");
+            SetThemeBrush("InputBorderBrush", "#475569");
+            SetThemeBrush("NeutralButtonBrush", "#1F2937");
+            SetThemeBrush("NeutralButtonHoverBrush", "#334155");
+            SetThemeBrush("NativeControlTextBrush", "#111827");
+            SetThemeBrush("StatusInfoBrush", "#60A5FA");
+            SetThemeBrush("StatusSuccessBrush", "#22C55E");
+            SetThemeBrush("StatusErrorBrush", "#F87171");
+            SetThemeBrush("TooltipBackgroundBrush", "#E5E7EB");
+            SetThemeBrush("TooltipForegroundBrush", "#111827");
+            ResetStatusHighlight();
+            return;
+        }
+
+        SetThemeBrush("AppBackgroundBrush", "#F5F7FB");
+        SetThemeBrush("CardBackgroundBrush", "#FFFFFF");
+        SetThemeBrush("BorderBrushColor", "#D9DEE8");
+        SetThemeBrush("PrimaryTextBrush", "#14171F");
+        SetThemeBrush("BodyTextBrush", "#3F4654");
+        SetThemeBrush("SecondaryTextBrush", "#5A6170");
+        SetThemeBrush("MutedTextBrush", "#6B7280");
+        SetThemeBrush("InputBackgroundBrush", "#FFFFFF");
+        SetThemeBrush("InputBorderBrush", "#AEB4BF");
+        SetThemeBrush("NeutralButtonBrush", "#E5E7EB");
+        SetThemeBrush("NeutralButtonHoverBrush", "#D1D5DB");
+        SetThemeBrush("NativeControlTextBrush", "#14171F");
+        SetThemeBrush("StatusInfoBrush", "#2563EB");
+        SetThemeBrush("StatusSuccessBrush", "#16A34A");
+        SetThemeBrush("StatusErrorBrush", "#DC2626");
+        SetThemeBrush("TooltipBackgroundBrush", "#111827");
+        SetThemeBrush("TooltipForegroundBrush", "#FFFFFF");
+        ResetStatusHighlight();
+    }
+
+    private void SetThemeBrush(string key, string color)
+    {
+        Resources[key] = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color));
+    }
+
+    private static bool IsSystemDarkTheme()
+    {
+        try
+        {
+            using var personalizeKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return personalizeKey?.GetValue("AppsUseLightTheme") is int appsUseLightTheme && appsUseLightTheme == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void ScheduleAutoSave()
@@ -986,6 +1149,92 @@ public partial class MainWindow : Window
         SaveStatusText.Text = Localizer.T(settings.AppLanguage, "AutoSaving");
         autoSaveTimer.Stop();
         autoSaveTimer.Start();
+    }
+
+    private void HighlightStatusChange(string message)
+    {
+        if (isLoading || StatusHighlightBorder is null)
+        {
+            return;
+        }
+
+        StatusHighlightBorder.BorderThickness = new Thickness(2);
+        StatusHighlightBorder.BorderBrush = (System.Windows.Media.Brush)FindResource(GetStatusHighlightBrushKey(message));
+        statusHighlightTimer.Stop();
+        statusHighlightTimer.Start();
+    }
+
+    private void ResetStatusHighlight()
+    {
+        statusHighlightTimer.Stop();
+
+        if (StatusHighlightBorder is null)
+        {
+            return;
+        }
+
+        StatusHighlightBorder.BorderThickness = new Thickness(1);
+        StatusHighlightBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("BorderBrushColor");
+    }
+
+    private static string GetStatusHighlightBrushKey(string message)
+    {
+        var normalized = message.ToLowerInvariant();
+        if (normalized.Contains("fehl", StringComparison.Ordinal)
+            || normalized.Contains("error", StringComparison.Ordinal)
+            || normalized.Contains("nicht gefunden", StringComparison.Ordinal)
+            || normalized.Contains("not found", StringComparison.Ordinal)
+            || normalized.Contains("abgebrochen", StringComparison.Ordinal)
+            || normalized.Contains("canceled", StringComparison.Ordinal)
+            || normalized.Contains("failed", StringComparison.Ordinal))
+        {
+            return "StatusErrorBrush";
+        }
+
+        if (normalized.Contains(" ok", StringComparison.Ordinal)
+            || normalized.StartsWith("ok", StringComparison.Ordinal)
+            || normalized.Contains("gespeichert", StringComparison.Ordinal)
+            || normalized.Contains("exportiert", StringComparison.Ordinal)
+            || normalized.Contains("importiert", StringComparison.Ordinal)
+            || normalized.Contains("kopiert", StringComparison.Ordinal)
+            || normalized.Contains("eingefuegt", StringComparison.Ordinal)
+            || normalized.Contains("saved", StringComparison.Ordinal)
+            || normalized.Contains("copied", StringComparison.Ordinal)
+            || normalized.Contains("inserted", StringComparison.Ordinal))
+        {
+            return "StatusSuccessBrush";
+        }
+
+        return "StatusInfoBrush";
+    }
+
+    private void RefreshOllamaModelOptions(IEnumerable<string> models)
+    {
+        isRefreshingOllamaModels = true;
+        try
+        {
+            var selectedModel = OllamaRewriteModelCombo.Text.Trim();
+            var options = models
+                .Where(model => !string.IsNullOrWhiteSpace(model))
+                .Append(selectedModel)
+                .Where(model => !string.IsNullOrWhiteSpace(model))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(model => model, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            ollamaRewriteModels.Clear();
+            foreach (var model in options)
+            {
+                ollamaRewriteModels.Add(model);
+            }
+
+            OllamaRewriteModelCombo.SelectedItem = ollamaRewriteModels.FirstOrDefault(model =>
+                model.Equals(selectedModel, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            isRefreshingOllamaModels = false;
+        }
     }
 
     private void RefreshWhisperModelOptions()

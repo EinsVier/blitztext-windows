@@ -3,12 +3,12 @@
   xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
     Name="BlitzText Windows"
-    Manufacturer="Micha"
+    Manufacturer="EinsVier"
     Version="$(var.ProductVersion)"
     UpgradeCode="655C162C-B793-4A4D-BBD2-B67CDDCF1CD7"
     Scope="perUser">
 
-    <SummaryInformation Description="BlitzText Windows Installer" Manufacturer="Micha" />
+    <SummaryInformation Description="BlitzText Windows Installer" Manufacturer="EinsVier" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of BlitzText Windows is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
@@ -41,7 +41,7 @@
         WorkingDirectory="APPFOLDER"
         Icon="BlitzTextIcon" />
       <RemoveFolder Id="RemoveProgramMenuBlitzText" On="uninstall" />
-      <RegistryValue Root="HKCU" Key="Software\Micha\BlitzText" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      <RegistryValue Root="HKCU" Key="Software\EinsVier\BlitzText" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
   </Package>
 </Wix>

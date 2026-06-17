@@ -24,5 +24,9 @@ dotnet publish $project `
     -p:PublishReadyToRun=true `
     --output $output
 
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE."
+}
+
 Write-Host "Published BlitzText Windows to: $output"
 Write-Host "Run: $output\BlitzText.Windows.exe"

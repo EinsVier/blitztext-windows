@@ -19,6 +19,12 @@ winget install --id EinsVier.BlitzText -e
 
 winget installiert das WiX-MSI und beruecksichtigt die benoetigte .NET 8 Windows Desktop Runtime.
 
+Mit benutzerdefiniertem Installationspfad:
+
+```powershell
+winget install --id EinsVier.BlitzText -e --location "C:\Apps\BlitzText"
+```
+
 ## Alternative: ZIP-Paket
 
 1. ZIP entpacken.
@@ -30,6 +36,12 @@ winget installiert das WiX-MSI und beruecksichtigt die benoetigte .NET 8 Windows
 ```
 
 Die App wird fuer den aktuellen Benutzer nach `%LOCALAPPDATA%\BlitzText\app` installiert. Es werden ein Startmenue-Eintrag und standardmaessig ein Autostart-Eintrag angelegt.
+
+Mit benutzerdefiniertem Installationspfad:
+
+```powershell
+.\install.ps1 -InstallDir "C:\Apps\BlitzText"
+```
 
 ## Ohne Autostart
 
@@ -47,6 +59,12 @@ Die App wird fuer den aktuellen Benutzer nach `%LOCALAPPDATA%\BlitzText\app` ins
 
 ```powershell
 .\uninstall.ps1
+```
+
+Wenn BlitzText in einen benutzerdefinierten Pfad installiert wurde, nutzt die Deinstallation den gespeicherten Installationspfad. Alternativ kann der Pfad explizit angegeben werden:
+
+```powershell
+.\uninstall.ps1 -InstallDir "C:\Apps\BlitzText"
 ```
 
 ## MSI bauen

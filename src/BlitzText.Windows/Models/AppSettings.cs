@@ -7,6 +7,7 @@ namespace BlitzText.Windows.Models;
 public sealed class AppSettings : INotifyPropertyChanged
 {
     private AppLanguage appLanguage = AppLanguage.German;
+    private AppTheme appTheme = AppTheme.System;
     private DictationLanguage dictationLanguage = DictationLanguage.Auto;
     private TranscriptionProviderKind transcriptionProvider = TranscriptionProviderKind.OpenAI;
     private RewriteProviderKind rewriteProvider = RewriteProviderKind.OpenAI;
@@ -44,6 +45,12 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => appLanguage;
         set => SetField(ref appLanguage, value);
+    }
+
+    public AppTheme AppTheme
+    {
+        get => appTheme;
+        set => SetField(ref appTheme, value);
     }
 
     public DictationLanguage DictationLanguage

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+PackageIdentifier: EinsVier.BlitzText
+PackageVersion: 0.4.1
+InstallerType: wix
+Scope: user
+UpgradeBehavior: install
+ReleaseDate: 2026-06-17
+InstallerSwitches:
+  Silent: /quiet
+  SilentWithProgress: /passive
+  InstallLocation: APPFOLDER="<INSTALLPATH>"
+Dependencies:
+  PackageDependencies:
+  - PackageIdentifier: Microsoft.DotNet.DesktopRuntime.8
+    MinimumVersion: 8.0.0
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/EinsVier/blitztext-windows/releases/download/v0.4.1/BlitzText-Windows-0.4.1-win-x64.msi
+  InstallerSha256: 1A94D750B6ACD5B1BB91F4CAC659876E458F9C6B877451FB39BF067747E33625
+  ProductCode: '{F65AFBC2-394A-4DD8-B4ED-830F5B52F2C8}'
+  AppsAndFeaturesEntries:
+  - DisplayName: BlitzText Windows
+    Publisher: EinsVier
+    ProductCode: '{F65AFBC2-394A-4DD8-B4ED-830F5B52F2C8}'
+ManifestType: installer
+ManifestVersion: 1.10.0
