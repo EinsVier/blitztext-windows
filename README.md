@@ -29,7 +29,9 @@ Provider behavior depends on your configuration:
 - Tray icon with open, workflow, and exit commands.
 - Configurable workflow hotkeys, one hotkey per workflow.
 - App language setting for German and English.
+- Theme setting for light, dark, or system mode.
 - Dictation language setting for automatic detection, German, or English.
+- Compact info bubbles for the main settings areas.
 - Hotkey detection dialog for checking special keys such as Browser Home.
 - Optional middle mouse button trigger.
 - Microphone recording to a temporary WAV file via NAudio.
@@ -42,8 +44,11 @@ Provider behavior depends on your configuration:
 - Anthropic rewrite provider for Claude models.
 - Ollama rewrite provider via `http://localhost:11434/api/chat`.
 - Ollama connection test via `/api/tags`.
+- Ollama model picker populated from the connection test results.
 - Optional Ollama warm-up with `keep_alive`.
+- Active rewrite provider badge so the currently used rewrite model is visible.
 - Step-by-step processing status and cancel button while processing.
+- Temporary status highlight when the status text changes.
 - OpenAI API key storage in Windows Credential Manager.
 - Custom names/vocabulary context for transcription and rewrite prompts.
 - Editable workflow prompts for improve, calm, and emoji modes.
@@ -53,8 +58,9 @@ Provider behavior depends on your configuration:
   - `Improve`
   - `Calm`
   - `Emojis`
-- Result is copied to the clipboard.
-- Optional target-aware auto-paste via simulated `Ctrl+V`.
+- Result is copied to the clipboard when AutoPaste is disabled.
+- Optional target-aware AutoPaste that preserves the previous clipboard contents after inserting the result.
+- More robust paste handling for classic editor controls such as Notepad++.
 - Local result history under `%APPDATA%\BlitzText\history.json`.
 - Optional local result history.
 - Settings export/import from the Backup tab.
