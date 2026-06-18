@@ -36,9 +36,11 @@ public partial class MainWindow : Window
     private bool isProcessing;
     private bool isRefreshingWhisperModels;
     private bool isRefreshingOllamaModels;
+    private bool isResultEditorRecording;
     private bool isDisposed;
     private string latestUpdateUrl = "";
     private string selectedPromptPresetId = "general";
+    private string? previousImprovePrompt;
     private WorkflowKind activeWorkflow;
     private TargetWindow activeTargetWindow = new(IntPtr.Zero, "");
     private CancellationTokenSource? workflowCancellation;
@@ -111,7 +113,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = ex.Message;
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
         }
     }
 
@@ -129,6 +131,7 @@ public partial class MainWindow : Window
     {
         isLoading = true;
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
+        ReprocessWorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
@@ -141,6 +144,7 @@ public partial class MainWindow : Window
         EmojisHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
 
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(settings.DefaultWorkflow, settings.AppLanguage);
+        ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(WorkflowKind.Improve, settings.AppLanguage);
         SelectPromptPreset(selectedPromptPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(settings.AppLanguage, settings.AppLanguage);
         AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(settings.AppTheme, settings.AppLanguage);
@@ -192,8 +196,16 @@ public partial class MainWindow : Window
 
     private async Task ToggleRecordingAsync(WorkflowKind? workflowOverride = null)
     {
+        var ownsProcessingState = false;
+
         try
         {
+            if (isResultEditorRecording)
+            {
+                await ToggleResultEditorRecordingAsync();
+                return;
+            }
+
             if (isProcessing)
             {
                 workflowCancellation?.Cancel();
@@ -216,6 +228,7 @@ public partial class MainWindow : Window
             }
 
             isProcessing = true;
+            ownsProcessingState = true;
             RecordButton.IsEnabled = true;
             RecordButton.Content = Localizer.T(settings.AppLanguage, "Cancel");
             StatusText.Text = settings.AppLanguage == AppLanguage.English
@@ -227,22 +240,23 @@ public partial class MainWindow : Window
             workflowCancellation?.Cancel();
             workflowCancellation = new CancellationTokenSource();
 
-            var result = await workflowRunner.RunAsync(
+            var result = await workflowRunner.RunWithTranscriptAsync(
                 wavPath,
                 activeWorkflow,
                 status => Dispatcher.Invoke(() => StatusText.Text = status),
                 workflowCancellation.Token);
-            ResultBox.Text = result;
+            SourceTextBox.Text = result.Transcript;
+            ResultBox.Text = result.Text;
             if (settings.SaveHistory)
             {
-                AddHistoryEntry(result, activeWorkflow);
+                AddHistoryEntry(result.Text, activeWorkflow, result.Transcript);
             }
 
             if (settings.AutoPaste)
             {
                 if (targetWindowService.Activate(activeTargetWindow))
                 {
-                    var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(result, activeTargetWindow.Handle);
+                    var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(result.Text, activeTargetWindow.Handle);
                     StatusText.Text = string.IsNullOrWhiteSpace(activeTargetWindow.Title)
                         ? (settings.AppLanguage == AppLanguage.English ? "Done. Result was pasted." : "Fertig. Ergebnis wurde eingefuegt.")
                         : (settings.AppLanguage == AppLanguage.English ? $"Done. Result was pasted into: {activeTargetWindow.Title}" : $"Fertig. Ergebnis wurde eingefuegt in: {activeTargetWindow.Title}");
@@ -263,7 +277,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            ClipboardPasteService.Copy(result);
+            ClipboardPasteService.Copy(result.Text);
             StatusText.Text = settings.AppLanguage == AppLanguage.English
                 ? "Done. Result was copied to the clipboard."
                 : "Fertig. Ergebnis wurde in die Zwischenablage kopiert.";
@@ -279,12 +293,130 @@ public partial class MainWindow : Window
                 recordingIndicator.Stop();
             }
 
-            StatusText.Text = ex.Message;
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
         }
         finally
         {
-            isProcessing = false;
+            if (ownsProcessingState)
+            {
+                isProcessing = false;
+                UpdateRecordButton();
+            }
+        }
+    }
+
+    private async void ResultRecordButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ToggleResultEditorRecordingAsync();
+    }
+
+    private void OpenSoundSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("ms-settings:sound")
+            {
+                UseShellExecute = true
+            });
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Windows sound settings opened."
+                : "Windows-Soundeinstellungen wurden geoeffnet.";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
+        }
+    }
+
+    private async Task ToggleResultEditorRecordingAsync()
+    {
+        var ownsProcessingState = false;
+
+        try
+        {
+            if (isProcessing)
+            {
+                workflowCancellation?.Cancel();
+                StatusText.Text = settings.AppLanguage == AppLanguage.English
+                    ? "Canceling processing..."
+                    : "Breche Verarbeitung ab...";
+                return;
+            }
+
+            if (!audioRecorder.IsRecording)
+            {
+                isResultEditorRecording = true;
+                await audioRecorder.StartAsync();
+                recordingIndicator.Start();
+                UpdateRecordButton();
+                StatusText.Text = settings.AppLanguage == AppLanguage.English
+                    ? "Recording spoken text..."
+                    : "Gesprochenen Text aufnehmen...";
+                return;
+            }
+
+            if (!isResultEditorRecording)
+            {
+                StatusText.Text = settings.AppLanguage == AppLanguage.English
+                    ? "Another recording is already running."
+                    : "Es laeuft bereits eine andere Aufnahme.";
+                return;
+            }
+
+            isProcessing = true;
+            ownsProcessingState = true;
             UpdateRecordButton();
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Transcribing spoken text..."
+                : "Transkribiere gesprochenen Text...";
+
+            var wavPath = await audioRecorder.StopAsync();
+            isResultEditorRecording = false;
+            recordingIndicator.Stop();
+            workflowCancellation?.Cancel();
+            workflowCancellation = new CancellationTokenSource();
+
+            var result = await workflowRunner.RunWithTranscriptAsync(
+                wavPath,
+                WorkflowKind.Transcribe,
+                status => Dispatcher.Invoke(() => StatusText.Text = status),
+                workflowCancellation.Token);
+
+            var transcript = result.Transcript.Trim();
+            var existingText = SourceTextBox.Text;
+            SourceTextBox.Text = string.IsNullOrWhiteSpace(existingText)
+                ? transcript
+                : $"{existingText.TrimEnd()} {transcript}";
+            SourceTextBox.CaretIndex = SourceTextBox.Text.Length;
+            SourceTextBox.ScrollToEnd();
+            ResultBox.Clear();
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "The recording was appended to the spoken text."
+                : "Die Aufnahme wurde an den gesprochenen Text angefuegt.";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Processing canceled."
+                : "Verarbeitung abgebrochen.";
+        }
+        catch (Exception ex)
+        {
+            if (!audioRecorder.IsRecording)
+            {
+                isResultEditorRecording = false;
+                recordingIndicator.Stop();
+            }
+
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
+        }
+        finally
+        {
+            if (ownsProcessingState)
+            {
+                isProcessing = false;
+                UpdateRecordButton();
+            }
         }
     }
 
@@ -298,6 +430,23 @@ public partial class MainWindow : Window
                 ? Localizer.T(settings.AppLanguage, "StopRecording")
                 : $"{Localizer.T(settings.AppLanguage, "StartRecording")} ({hotkeyLabel})";
         RecordButton.ToolTip = $"{Localizer.T(settings.AppLanguage, "RecordButtonTip")}: {hotkeyLabel}";
+
+        if (ResultRecordButton is not null)
+        {
+            ResultRecordButton.IsEnabled = !isProcessing || isResultEditorRecording;
+            ResultRecordIcon.Data = Geometry.Parse(isResultEditorRecording
+                ? "M5,5 L15,5 L15,15 L5,15 Z"
+                : "M10,2 C8.35,2 7,3.35 7,5 L7,10 C7,11.65 8.35,13 10,13 C11.65,13 13,11.65 13,10 L13,5 C13,3.35 11.65,2 10,2 Z M4.5,9.5 L4.5,10 C4.5,13.04 6.96,15.5 10,15.5 C13.04,15.5 15.5,13.04 15.5,10 L15.5,9.5 M10,15.5 L10,18 M7.5,18 L12.5,18");
+            ResultRecordIcon.Fill = isResultEditorRecording
+                ? FindResource("StatusErrorBrush") as System.Windows.Media.Brush
+                : System.Windows.Media.Brushes.Transparent;
+            ResultRecordIcon.Stroke = isResultEditorRecording
+                ? FindResource("StatusErrorBrush") as System.Windows.Media.Brush
+                : FindResource("StatusInfoBrush") as System.Windows.Media.Brush;
+            ResultRecordButton.ToolTip = Localizer.T(
+                settings.AppLanguage,
+                isResultEditorRecording ? "StopSpokenTextRecording" : "RecordSpokenText");
+        }
     }
 
     private string GetDefaultWorkflowHotkeyLabel()
@@ -389,7 +538,7 @@ public partial class MainWindow : Window
         {
             UpdateStatusText.Text = string.Format(
                 Localizer.T(settings.AppLanguage, "UpdateCheckFailed"),
-                ex.Message);
+                UserErrorFormatter.Format(ex, settings.AppLanguage));
         }
         finally
         {
@@ -412,9 +561,26 @@ public partial class MainWindow : Window
 
     private void ResetPromptsButton_Click(object sender, RoutedEventArgs e)
     {
+        var confirmation = System.Windows.MessageBox.Show(
+            Localizer.T(settings.AppLanguage, "ConfirmResetPrompts"),
+            Localizer.T(settings.AppLanguage, "ConfirmResetPromptsTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "The existing workflow prompts were kept."
+                : "Die vorhandenen Workflow-Prompts wurden beibehalten.";
+            return;
+        }
+
         ImprovePromptBox.Text = DefaultPrompts.GetImprove(settings.AppLanguage);
         CalmPromptBox.Text = DefaultPrompts.GetCalm(settings.AppLanguage);
         EmojisPromptBox.Text = DefaultPrompts.GetEmojis(settings.AppLanguage);
+        previousImprovePrompt = null;
+        RestorePreviousPromptButton.Visibility = Visibility.Collapsed;
         SaveSettingsFromUi(saveToDisk: false);
         ScheduleAutoSave();
         StatusText.Text = settings.AppLanguage == AppLanguage.English
@@ -429,21 +595,98 @@ public partial class MainWindow : Window
             return;
         }
 
+        var presetPrompt = selectedPreset.Value.GetPrompt(settings.AppLanguage);
+        var currentPrompt = ImprovePromptBox.Text;
+        if (string.Equals(currentPrompt.Trim(), presetPrompt.Trim(), StringComparison.Ordinal))
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "This prompt preset is already active."
+                : "Diese Prompt-Vorlage ist bereits aktiv.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentPrompt))
+        {
+            var confirmation = System.Windows.MessageBox.Show(
+                Localizer.T(settings.AppLanguage, "ConfirmPresetReplacement"),
+                Localizer.T(settings.AppLanguage, "ConfirmPresetReplacementTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                StatusText.Text = settings.AppLanguage == AppLanguage.English
+                    ? "The existing prompt was kept."
+                    : "Der vorhandene Prompt wurde beibehalten.";
+                return;
+            }
+        }
+
+        previousImprovePrompt ??= currentPrompt;
+        RestorePreviousPromptButton.Visibility = Visibility.Visible;
         selectedPromptPresetId = selectedPreset.Value.Id;
-        ImprovePromptBox.Text = selectedPreset.Value.GetPrompt(settings.AppLanguage);
+        ImprovePromptBox.Text = presetPrompt;
         SaveSettingsFromUi(saveToDisk: false);
         ScheduleAutoSave();
         StatusText.Text = settings.AppLanguage == AppLanguage.English
-            ? $"Prompt preset applied: {selectedPreset.Label}"
-            : $"Prompt-Vorlage angewendet: {selectedPreset.Label}";
+            ? $"Prompt preset applied: {selectedPreset.Label}. The previous prompt can be restored."
+            : $"Prompt-Vorlage angewendet: {selectedPreset.Label}. Der vorherige Prompt kann wiederhergestellt werden.";
+    }
+
+    private void RestorePreviousPromptButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (previousImprovePrompt is null)
+        {
+            return;
+        }
+
+        ImprovePromptBox.Text = previousImprovePrompt;
+        previousImprovePrompt = null;
+        RestorePreviousPromptButton.Visibility = Visibility.Collapsed;
+        SaveSettingsFromUi(saveToDisk: false);
+        ScheduleAutoSave();
+        StatusText.Text = settings.AppLanguage == AppLanguage.English
+            ? "The previous prompt was restored."
+            : "Der vorherige Prompt wurde wiederhergestellt.";
     }
 
     private void HistoryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (HistoryList.SelectedItem is HistoryEntry entry)
         {
+            SourceTextBox.Text = entry.SourceForRewrite;
             ResultBox.Text = entry.Text;
+            ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(entry.Workflow, settings.AppLanguage);
+            RefreshPromptDetails();
         }
+    }
+
+    private void SourceTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        RefreshPromptDetails();
+    }
+
+    private void ReprocessWorkflowCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        RefreshPromptDetails();
+    }
+
+    private void RefreshPromptDetails()
+    {
+        if (PromptDetailsBox is null || SourceTextBox is null || ReprocessWorkflowCombo is null)
+        {
+            return;
+        }
+
+        var workflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedWorkflow
+            ? selectedWorkflow.Value
+            : settings.DefaultWorkflow;
+        var prompt = WorkflowPromptFactory.CreateRewritePrompt(workflow, SourceTextBox.Text, settings);
+
+        PromptDetailsBox.Text = prompt ?? (settings.AppLanguage == AppLanguage.English
+            ? "This workflow does not send a rewrite prompt. The edited transcription is used unchanged."
+            : "Dieser Workflow sendet keinen Rewrite-Prompt. Die bearbeitete Transkription wird unveraendert verwendet.");
     }
 
     private void CopyResultButton_Click(object sender, RoutedEventArgs e)
@@ -460,6 +703,74 @@ public partial class MainWindow : Window
             : "Ergebnis wurde in die Zwischenablage kopiert.";
     }
 
+    private async void ReprocessResultButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (isProcessing || audioRecorder.IsRecording)
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Finish or cancel the current recording or processing first."
+                : "Bitte zuerst die laufende Aufnahme oder Verarbeitung beenden beziehungsweise abbrechen.";
+            return;
+        }
+
+        var sourceText = SourceTextBox.Text;
+
+        if (string.IsNullOrWhiteSpace(sourceText))
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "No text to reprocess."
+                : "Kein Text zum erneuten Verarbeiten.";
+            return;
+        }
+
+        var workflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedWorkflow
+            ? selectedWorkflow.Value
+            : settings.DefaultWorkflow;
+
+        try
+        {
+            isProcessing = true;
+            ReprocessResultButton.IsEnabled = false;
+            UpdateRecordButton();
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? $"Reprocessing: {WorkflowDisplay.GetLabel(workflow, settings.AppLanguage)}..."
+                : $"Verarbeite erneut: {WorkflowDisplay.GetLabel(workflow, settings.AppLanguage)}...";
+
+            workflowCancellation?.Cancel();
+            workflowCancellation = new CancellationTokenSource();
+            var result = await workflowRunner.RunTextAsync(
+                sourceText,
+                workflow,
+                status => Dispatcher.Invoke(() => StatusText.Text = status),
+                workflowCancellation.Token);
+
+            ResultBox.Text = result;
+            if (settings.SaveHistory)
+            {
+                AddHistoryEntry(result, workflow, sourceText);
+            }
+
+            ClipboardPasteService.Copy(result);
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Reprocessed result was copied to the clipboard."
+                : "Erneut verarbeitetes Ergebnis wurde in die Zwischenablage kopiert.";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English ? "Processing canceled." : "Verarbeitung abgebrochen.";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
+        }
+        finally
+        {
+            isProcessing = false;
+            ReprocessResultButton.IsEnabled = true;
+            UpdateRecordButton();
+        }
+    }
+
     private void DeleteHistoryEntryButton_Click(object sender, RoutedEventArgs e)
     {
         if (HistoryList.SelectedItem is not HistoryEntry entry)
@@ -471,7 +782,9 @@ public partial class MainWindow : Window
         allHistoryEntries.Remove(entry);
         historyStore.Save(allHistoryEntries);
         ApplyHistoryFilter();
+        SourceTextBox.Clear();
         ResultBox.Clear();
+        PromptDetailsBox.Clear();
         StatusText.Text = settings.AppLanguage == AppLanguage.English ? "History entry deleted." : "Verlaufseintrag geloescht.";
     }
 
@@ -480,7 +793,9 @@ public partial class MainWindow : Window
         allHistoryEntries.Clear();
         historyEntries.Clear();
         historyStore.Save(allHistoryEntries);
+        SourceTextBox.Clear();
         ResultBox.Clear();
+        PromptDetailsBox.Clear();
         StatusText.Text = settings.AppLanguage == AppLanguage.English ? "History cleared." : "Verlauf geleert.";
     }
 
@@ -490,6 +805,98 @@ public partial class MainWindow : Window
         {
             ApplyHistoryFilter();
         }
+    }
+
+    private async void CheckSetupButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveSettingsFromUi(saveToDisk: false);
+        CheckSetupButton.IsEnabled = false;
+        SetupCheckResultBox.Text = settings.AppLanguage == AppLanguage.English ? "Checking setup..." : "Pruefe Setup...";
+
+        try
+        {
+            SetupCheckResultBox.Text = await BuildSetupCheckReportAsync();
+            StatusText.Text = settings.AppLanguage == AppLanguage.English ? "Setup check completed." : "Setup-Pruefung abgeschlossen.";
+        }
+        finally
+        {
+            CheckSetupButton.IsEnabled = true;
+        }
+    }
+
+    private async Task<string> BuildSetupCheckReportAsync()
+    {
+        var lines = new List<string>();
+        var english = settings.AppLanguage == AppLanguage.English;
+        void Add(bool ok, string label, string detail)
+        {
+            lines.Add($"{(ok ? "OK" : "!")} {label}: {detail}");
+        }
+
+        Add(isHotkeyReady,
+            english ? "Hotkeys" : "Hotkeys",
+            isHotkeyReady
+                ? (english ? "registered" : "registriert")
+                : (english ? "not registered yet" : "noch nicht registriert"));
+
+        var openAiRequired = settings.TranscriptionProvider == TranscriptionProviderKind.OpenAI ||
+                             settings.RewriteProvider == RewriteProviderKind.OpenAI;
+        Add(!openAiRequired || !string.IsNullOrWhiteSpace(settings.OpenAiApiKey),
+            "OpenAI",
+            !openAiRequired
+                ? (english ? "not selected" : "nicht ausgewaehlt")
+                : !string.IsNullOrWhiteSpace(settings.OpenAiApiKey)
+                ? (english ? "API key available" : "API-Key vorhanden")
+                : (english ? "API key missing" : "API-Key fehlt"));
+
+        Add(settings.RewriteProvider != RewriteProviderKind.OpenRouter || !string.IsNullOrWhiteSpace(settings.OpenRouterApiKey),
+            "OpenRouter",
+            settings.RewriteProvider != RewriteProviderKind.OpenRouter
+                ? (english ? "not selected" : "nicht ausgewaehlt")
+                : string.IsNullOrWhiteSpace(settings.OpenRouterApiKey)
+                ? (english ? "API key missing" : "API-Key fehlt")
+                : (english ? "API key available" : "API-Key vorhanden"));
+
+        Add(settings.RewriteProvider != RewriteProviderKind.Anthropic || !string.IsNullOrWhiteSpace(settings.AnthropicApiKey),
+            "Anthropic",
+            settings.RewriteProvider != RewriteProviderKind.Anthropic
+                ? (english ? "not selected" : "nicht ausgewaehlt")
+                : string.IsNullOrWhiteSpace(settings.AnthropicApiKey)
+                ? (english ? "API key missing" : "API-Key fehlt")
+                : (english ? "API key available" : "API-Key vorhanden"));
+
+        if (settings.RewriteProvider == RewriteProviderKind.Ollama || settings.KeepOllamaWarm)
+        {
+            try
+            {
+                var result = await ollamaConnectionTester.TestAsync(settings.OllamaBaseUrl, settings.OllamaRewriteModel, CancellationToken.None);
+                Add(result.ModelFound, "Ollama", result.Message);
+            }
+            catch (Exception ex)
+            {
+                Add(false, "Ollama", UserErrorFormatter.Format(ex, settings.AppLanguage));
+            }
+        }
+        else
+        {
+            Add(true, "Ollama", english ? "not selected" : "nicht ausgewaehlt");
+        }
+
+        var whisperExeOk = File.Exists(settings.LocalWhisperExecutablePath);
+        var whisperModelOk = File.Exists(settings.LocalWhisperModelPath);
+        var localWhisperSelected = settings.TranscriptionProvider == TranscriptionProviderKind.LocalWhisper;
+        Add(!localWhisperSelected || whisperExeOk,
+            english ? "Whisper executable" : "Whisper-EXE",
+            !localWhisperSelected
+                ? (english ? "not selected" : "nicht ausgewaehlt")
+                : whisperExeOk ? settings.LocalWhisperExecutablePath : (english ? "missing" : "fehlt"));
+        Add(!localWhisperSelected || whisperModelOk,
+            english ? "Whisper model" : "Whisper-Modell",
+            !localWhisperSelected
+                ? (english ? "not selected" : "nicht ausgewaehlt")
+                : whisperModelOk ? settings.LocalWhisperModelPath : (english ? "missing" : "fehlt"));
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private void OpenAiApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -535,7 +942,9 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Ollama-Test fehlgeschlagen: {ex.Message}";
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? $"Ollama test failed: {UserErrorFormatter.Format(ex, settings.AppLanguage)}"
+                : $"Ollama-Test fehlgeschlagen: {UserErrorFormatter.Format(ex, settings.AppLanguage)}";
         }
         finally
         {
@@ -653,7 +1062,9 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            SetStatus($"Whisper-Test fehlgeschlagen: {ex.Message}", true);
+            SetStatus(settings.AppLanguage == AppLanguage.English
+                ? $"Whisper test failed: {UserErrorFormatter.Format(ex, settings.AppLanguage)}"
+                : $"Whisper-Test fehlgeschlagen: {UserErrorFormatter.Format(ex, settings.AppLanguage)}", true);
         }
         finally
         {
@@ -825,6 +1236,8 @@ public partial class MainWindow : Window
             credentialStore.SaveAnthropicApiKey(settings.AnthropicApiKey);
             settingsStore.Save(settings);
         }
+
+        RefreshPromptDetails();
     }
 
     private void ApplyImportedSettings(AppSettings importedSettings)
@@ -869,13 +1282,14 @@ public partial class MainWindow : Window
 
         foreach (var entry in historyStore.Load())
         {
+            entry.WorkflowLabel = WorkflowDisplay.GetLabel(entry.Workflow, settings.AppLanguage);
             allHistoryEntries.Add(entry);
         }
 
         ApplyHistoryFilter();
     }
 
-    private void AddHistoryEntry(string text, WorkflowKind workflow)
+    private void AddHistoryEntry(string text, WorkflowKind workflow, string sourceText)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -886,7 +1300,9 @@ public partial class MainWindow : Window
         {
             CreatedAt = DateTimeOffset.Now,
             Workflow = workflow,
-            Text = text
+            Text = text,
+            SourceText = sourceText,
+            WorkflowLabel = WorkflowDisplay.GetLabel(workflow, settings.AppLanguage)
         };
         allHistoryEntries.Insert(0, entry);
 
@@ -897,7 +1313,10 @@ public partial class MainWindow : Window
 
         historyStore.Save(allHistoryEntries);
         ApplyHistoryFilter();
-        HistoryList.SelectedIndex = 0;
+        if (historyEntries.Contains(entry))
+        {
+            HistoryList.SelectedItem = entry;
+        }
     }
 
     private void ApplyHistoryFilter()
@@ -908,6 +1327,8 @@ public partial class MainWindow : Window
             : allHistoryEntries
                 .Where(entry =>
                     entry.Text.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    entry.SourceText.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    entry.WorkflowLabel.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                     entry.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                     entry.Preview.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -925,20 +1346,31 @@ public partial class MainWindow : Window
         var selectedAppLanguage = settings.AppLanguage;
         var selectedTheme = settings.AppTheme;
         var selectedDictationLanguage = settings.DictationLanguage;
+        var selectedReprocessWorkflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> reprocessWorkflow
+            ? reprocessWorkflow.Value
+            : WorkflowKind.Improve;
         var selectedPresetId = GetSelectedPromptPresetId();
 
         isLoading = true;
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
+        ReprocessWorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedWorkflow, settings.AppLanguage);
+        ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedReprocessWorkflow, settings.AppLanguage);
         SelectPromptPreset(selectedPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(selectedAppLanguage, settings.AppLanguage);
         AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(selectedTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(selectedDictationLanguage, settings.AppLanguage);
         isLoading = false;
+
+        foreach (var entry in allHistoryEntries)
+        {
+            entry.WorkflowLabel = WorkflowDisplay.GetLabel(entry.Workflow, settings.AppLanguage);
+        }
+        ApplyHistoryFilter();
     }
 
     private string GetSelectedPromptPresetId()
@@ -1034,6 +1466,7 @@ public partial class MainWindow : Window
         PromptPresetTitleText.Text = Localizer.T(language, "PromptPresets");
         PromptPresetHintText.Text = Localizer.T(language, "PromptPresetsHint");
         ApplyPromptPresetButton.Content = Localizer.T(language, "Apply");
+        RestorePreviousPromptButton.Content = Localizer.T(language, "RestorePreviousPrompt");
         ImprovePromptLabelText.Text = Localizer.T(language, "Improve");
         CalmPromptLabelText.Text = Localizer.T(language, "Calm");
         EmojisPromptLabelText.Text = Localizer.T(language, "Emojis");
@@ -1044,6 +1477,9 @@ public partial class MainWindow : Window
         AppVersionText.Text = $"BlitzText Windows {GetAppVersion()}";
         CheckUpdatesButton.Content = Localizer.T(language, "CheckUpdates");
         OpenUpdateButton.Content = Localizer.T(language, "OpenDownload");
+        SetupCheckTitleText.Text = Localizer.T(language, "SetupCheck");
+        SetupCheckHintText.Text = Localizer.T(language, "SetupCheckHint");
+        CheckSetupButton.Content = Localizer.T(language, "CheckSetup");
         if (string.IsNullOrWhiteSpace(latestUpdateUrl))
         {
             UpdateStatusText.Text = Localizer.T(language, "UpdateNotChecked");
@@ -1055,6 +1491,14 @@ public partial class MainWindow : Window
         ImportSettingsButton.Content = Localizer.T(language, "Import");
 
         CopyResultButton.Content = Localizer.T(language, "Copy");
+        ReprocessResultButton.Content = Localizer.T(language, "Reprocess");
+        SpokenTextTitleText.Text = Localizer.T(language, "SpokenText");
+        SpokenTextHintText.Text = Localizer.T(language, "SpokenTextHint");
+        OpenSoundSettingsButton.ToolTip = Localizer.T(language, "OpenSoundSettings");
+        ReprocessWorkflowLabelText.Text = Localizer.T(language, "ReprocessWorkflow");
+        FinalTextTitleText.Text = Localizer.T(language, "FinalText");
+        PromptDetailsHeaderText.Text = Localizer.T(language, "PromptDetails");
+        PromptDetailsHintText.Text = Localizer.T(language, "PromptDetailsHint");
         DeleteHistoryEntryButton.Content = Localizer.T(language, "Delete");
         ClearHistoryButton.Content = Localizer.T(language, "ClearHistory");
         HistorySearchLabelText.Text = Localizer.T(language, "SearchHistoryLabel");
@@ -1078,6 +1522,8 @@ public partial class MainWindow : Window
         BackupHelpText.ToolTip = Localizer.T(language, "HelpBackup");
         ImportSettingsHelpText.ToolTip = Localizer.T(language, "HelpImportSettings");
         ResultsHelpText.ToolTip = Localizer.T(language, "HelpResults");
+        SpokenTextHelpText.ToolTip = Localizer.T(language, "HelpSpokenText");
+        RefreshPromptDetails();
     }
 
     private void SetActiveBadgeText(System.Windows.Controls.Label badge, AppLanguage language)
@@ -1384,23 +1830,21 @@ public partial class MainWindow : Window
 
     private void RegisterWorkflowHotkeys()
     {
-        if (!isHotkeyReady)
-        {
-            return;
-        }
-
         try
         {
             var handle = new WindowInteropHelper(this).Handle;
             hotkeyService.RegisterWorkflowHotkeys(handle, GetWorkflowHotkeyOptions());
+            isHotkeyReady = true;
             var message = Localizer.T(settings.AppLanguage, "HotkeysActive");
             HotkeyStatusText.Text = message;
             StatusText.Text = message;
         }
         catch (Exception ex)
         {
-            HotkeyStatusText.Text = ex.Message;
-            StatusText.Text = ex.Message;
+            isHotkeyReady = false;
+            var message = UserErrorFormatter.Format(ex, settings.AppLanguage);
+            HotkeyStatusText.Text = message;
+            StatusText.Text = message;
         }
     }
 

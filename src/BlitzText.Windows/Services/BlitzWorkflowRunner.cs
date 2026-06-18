@@ -10,14 +10,33 @@ public sealed class BlitzWorkflowRunner(ProviderFactory providerFactory, AppSett
         Action<string>? progress,
         CancellationToken cancellationToken)
     {
+        return (await RunWithTranscriptAsync(wavPath, workflow, progress, cancellationToken)).Text;
+    }
+
+    public async Task<WorkflowRunResult> RunWithTranscriptAsync(
+        string wavPath,
+        WorkflowKind workflow,
+        Action<string>? progress,
+        CancellationToken cancellationToken)
+    {
         var transcriptionProvider = providerFactory.CreateTranscriptionProvider();
         progress?.Invoke($"Transkribiere mit {transcriptionProvider.DisplayName}...");
         var transcript = await transcriptionProvider.TranscribeAsync(wavPath, cancellationToken);
 
-        var rewritePrompt = WorkflowPromptFactory.CreateRewritePrompt(workflow, transcript, settings);
+        var text = await RunTextAsync(transcript, workflow, progress, cancellationToken);
+        return new WorkflowRunResult(text, transcript);
+    }
+
+    public async Task<string> RunTextAsync(
+        string text,
+        WorkflowKind workflow,
+        Action<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        var rewritePrompt = WorkflowPromptFactory.CreateRewritePrompt(workflow, text, settings);
         if (string.IsNullOrWhiteSpace(rewritePrompt))
         {
-            return transcript;
+            return text;
         }
 
         var rewriteProvider = providerFactory.CreateRewriteProvider();

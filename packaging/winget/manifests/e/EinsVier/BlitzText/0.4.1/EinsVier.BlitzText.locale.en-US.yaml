@@ -21,7 +21,7 @@ Tags:
 - hotkey
 - wpf
 - ai
-ReleaseNotes: Updates publisher metadata to EinsVier, adds light/dark/system theme selection, improves help text and status visibility, marks the active rewrite provider, adds Ollama model selection from test results, preserves the previous clipboard contents after AutoPaste, improves paste behavior for editors such as Notepad++, adds custom install path support, refreshes the app icon, and exits cleanly from the tray menu.
+ReleaseNotes: Updates publisher metadata to EinsVier, adds light/dark/system theme selection, improves help text and status visibility, marks the active rewrite provider, adds Ollama model selection from test results, introduces an editable spoken-text and final-text result workspace with workflow reprocessing and read-only prompt inspection, supports appending microphone recordings to the spoken text, links to Windows sound settings, protects custom prompts before presets or resets replace them, adds setup checks and friendlier provider error messages, preserves the previous clipboard contents after AutoPaste, improves paste behavior for editors such as Notepad++, adds custom install path support, refreshes the app icon, and exits cleanly from the tray menu.
 ReleaseNotesUrl: https://github.com/EinsVier/blitztext-windows/releases/tag/v0.4.1
 ManifestType: defaultLocale
 ManifestVersion: 1.10.0

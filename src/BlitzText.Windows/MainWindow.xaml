@@ -421,19 +421,6 @@
                         <CheckBox x:Name="KeepOllamaWarmCheckBox" Content="Ollama warmhalten" Checked="Settings_Changed" Unchecked="Settings_Changed" />
                         <Label x:Name="KeepOllamaWarmHelpText" Style="{StaticResource HelpTextStyle}" />
                     </StackPanel>
-
-                    <Border x:Name="StatusHighlightBorder"
-                            BorderBrush="{DynamicResource BorderBrushColor}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="10"
-                            Margin="0,0,0,0">
-                        <StackPanel>
-                            <TextBlock x:Name="StatusLabelText" Text="Status" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
-                            <TextBlock x:Name="StatusText" Text="Bereit" TextWrapping="Wrap" Foreground="{DynamicResource BodyTextBrush}" Margin="0,10,0,0" />
-                            <TextBlock x:Name="SaveStatusText" Text="Aenderungen werden automatisch gespeichert." TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" Margin="0,12,0,0" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
                 </ScrollViewer>
             </Border>
@@ -540,7 +527,7 @@
                     </TabItem>
 
                     <TabItem x:Name="HotkeysTab" Header="Hotkeys">
-                        <Grid Margin="0,16,0,0">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="220" />
                                 <ColumnDefinition Width="*" />
@@ -599,6 +586,12 @@
                                     <Button x:Name="ApplyPromptPresetButton" DockPanel.Dock="Right" Content="Anwenden" Width="96" Height="32" Margin="10,0,0,0" Click="ApplyPromptPresetButton_Click" />
                                     <ComboBox x:Name="PromptPresetCombo" Height="32" />
                                 </DockPanel>
+                                <Button x:Name="RestorePreviousPromptButton"
+                                        Content="Vorherigen Prompt wiederherstellen"
+                                        Height="32"
+                                        Margin="0,-10,0,18"
+                                        Visibility="Collapsed"
+                                        Click="RestorePreviousPromptButton_Click" />
 
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="CustomNamesTitleText" Text="Eigennamen" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
@@ -641,6 +634,7 @@
                     </TabItem>
 
                     <TabItem x:Name="BackupTab" Header="Backup">
+                        <ScrollViewer Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
                         <Grid Margin="0,16,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -660,6 +654,12 @@
                                     <Button x:Name="OpenUpdateButton" Content="Download oeffnen" Height="36" MinWidth="130" Margin="10,0,0,0" IsEnabled="False" Click="OpenUpdateButton_Click" />
                                 </StackPanel>
 
+                                <TextBlock x:Name="SetupCheckTitleText" Text="Konfiguration pruefen" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,0" />
+                                <TextBlock x:Name="SetupCheckHintText" Text="Prueft Provider, Hotkeys, Ollama und lokale Whisper-Dateien ohne geheime Schluessel anzuzeigen." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <Button x:Name="CheckSetupButton" Content="Setup pruefen" Height="36" MinWidth="130" Margin="0,0,0,12" Click="CheckSetupButton_Click" />
+                                <TextBox x:Name="SetupCheckResultBox" MinHeight="120" MaxHeight="220" TextWrapping="Wrap" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" IsReadOnly="True" Margin="0,0,0,22" />
+
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ExportSettingsTitleText" Text="Einstellungen exportieren" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                                     <Label x:Name="BackupHelpText" Style="{StaticResource HelpTextStyle}" />
@@ -677,6 +677,7 @@
                                 <Button x:Name="ImportSettingsButton" Content="Importieren" Height="36" Click="ImportSettingsButton_Click" />
                             </StackPanel>
                         </Grid>
+                        </ScrollViewer>
                     </TabItem>
 
                     <TabItem x:Name="ResultTab" Header="Ergebnis">
@@ -714,22 +715,202 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Margin="2,4">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                            <DockPanel LastChildFill="True">
+                                                <Border DockPanel.Dock="Left"
+                                                        Background="{DynamicResource NeutralButtonBrush}"
+                                                        Padding="6,2"
+                                                        Margin="0,0,6,0">
+                                                    <TextBlock Text="{Binding WorkflowLabel}" FontSize="11" FontWeight="SemiBold" />
+                                                </Border>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                            </DockPanel>
                                             <TextBlock Text="{Binding Preview}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
 
-                            <TextBox x:Name="ResultBox" Grid.Row="2" Grid.Column="2" Margin="0,12,0,0" TextWrapping="Wrap" AcceptsReturn="True"
-                                     VerticalScrollBarVisibility="Auto" IsReadOnly="True" />
+                            <ScrollViewer Grid.Row="2" Grid.Column="2" Margin="0,12,0,0"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel>
+                                    <DockPanel LastChildFill="True">
+                                        <StackPanel DockPanel.Dock="Right"
+                                                    Orientation="Horizontal"
+                                                    Margin="8,0,0,0">
+                                            <Button x:Name="OpenSoundSettingsButton"
+                                                    Width="32"
+                                                    Height="32"
+                                                    Padding="0"
+                                                    Margin="0,0,6,0"
+                                                    Click="OpenSoundSettingsButton_Click">
+                                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="16"
+                                                           Text="&#xE713;"
+                                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Button>
+                                            <Button x:Name="ResultRecordButton"
+                                                    Width="32"
+                                                    Height="32"
+                                                    Padding="0"
+                                                    BorderBrush="{DynamicResource StatusInfoBrush}"
+                                                    Click="ResultRecordButton_Click">
+                                                <Viewbox Width="18" Height="18">
+                                                    <Path x:Name="ResultRecordIcon"
+                                                          Width="20"
+                                                          Height="20"
+                                                          Data="M10,2 C8.35,2 7,3.35 7,5 L7,10 C7,11.65 8.35,13 10,13 C11.65,13 13,11.65 13,10 L13,5 C13,3.35 11.65,2 10,2 Z M4.5,9.5 L4.5,10 C4.5,13.04 6.96,15.5 10,15.5 C13.04,15.5 15.5,13.04 15.5,10 L15.5,9.5 M10,15.5 L10,18 M7.5,18 L12.5,18"
+                                                          Fill="Transparent"
+                                                          Stroke="{DynamicResource StatusInfoBrush}"
+                                                          StrokeThickness="1.7"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"
+                                                          StrokeLineJoin="Round" />
+                                                </Viewbox>
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="SpokenTextTitleText"
+                                                       Text="Gesprochener Text"
+                                                       FontSize="15"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                                       VerticalAlignment="Center" />
+                                            <Label x:Name="SpokenTextHelpText"
+                                                   Style="{StaticResource HelpTextStyle}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <TextBlock x:Name="SpokenTextHintText"
+                                               Text="Die Transkription kann vor einer erneuten Verarbeitung korrigiert werden."
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               Margin="0,4,0,8" />
+                                    <TextBox x:Name="SourceTextBox"
+                                             MinHeight="120"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             VerticalScrollBarVisibility="Auto"
+                                             TextChanged="SourceTextBox_TextChanged" />
+
+                                    <Grid Margin="0,12,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock x:Name="ReprocessWorkflowLabelText"
+                                                       Text="Workflow fuer neue Variante"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,0,6" />
+                                            <ComboBox x:Name="ReprocessWorkflowCombo"
+                                                      Height="32"
+                                                      SelectionChanged="ReprocessWorkflowCombo_SelectionChanged" />
+                                        </StackPanel>
+                                        <Button x:Name="ReprocessResultButton"
+                                                Grid.Column="1"
+                                                Content="Erneut verarbeiten"
+                                                MinWidth="150"
+                                                Height="32"
+                                                VerticalAlignment="Bottom"
+                                                Click="ReprocessResultButton_Click" />
+                                    </Grid>
+
+                                    <TextBlock x:Name="FinalTextTitleText"
+                                               Text="Endgueltiger Text"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               Margin="0,0,0,8" />
+                                    <TextBox x:Name="ResultBox"
+                                             MinHeight="150"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             VerticalScrollBarVisibility="Auto"
+                                             IsReadOnly="True" />
+
+                                    <Expander x:Name="PromptDetailsExpander"
+                                              Foreground="{DynamicResource PrimaryTextBrush}"
+                                              Margin="0,14,0,0">
+                                        <Expander.Header>
+                                            <TextBlock x:Name="PromptDetailsHeaderText"
+                                                       Text="Prompt fuer neue Variante"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}" />
+                                        </Expander.Header>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <TextBlock x:Name="PromptDetailsHintText"
+                                                       Text="Zeigt den Prompt, der mit dem aktuell ausgewaehlten Workflow und Text gesendet wuerde. Dieser Text wird nicht kopiert oder eingefuegt."
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       Margin="0,0,0,8" />
+                                            <TextBox x:Name="PromptDetailsBox"
+                                                     MinHeight="140"
+                                                     MaxHeight="280"
+                                                     TextWrapping="Wrap"
+                                                     AcceptsReturn="True"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     Foreground="{DynamicResource PrimaryTextBrush}"
+                                                     IsReadOnly="True" />
+                                        </StackPanel>
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </TabItem>
                 </TabControl>
             </Border>
         </Grid>
 
-        <TextBlock x:Name="FooterText" Grid.Row="2" Margin="0,16,0,0" Foreground="{DynamicResource MutedTextBrush}"
-                   Text="Hotkey druecken, sprechen, Hotkey erneut druecken. Das Ergebnis landet in der Zwischenablage oder direkt im Ziel-Fenster." />
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border x:Name="StatusHighlightBorder"
+                    Grid.Row="0"
+                    BorderBrush="{DynamicResource BorderBrushColor}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="StatusLabelText"
+                               Grid.Column="0"
+                               Text="Status"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0" />
+                    <TextBlock x:Name="StatusText"
+                               Grid.Column="1"
+                               Text="Bereit"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource BodyTextBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock x:Name="SaveStatusText"
+                               Grid.Column="2"
+                               Text="Aenderungen werden automatisch gespeichert."
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="16,0,0,0"
+                               MaxWidth="260" />
+                </Grid>
+            </Border>
+
+            <TextBlock x:Name="FooterText"
+                       Grid.Row="1"
+                       Margin="0,8,0,0"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Text="Hotkey druecken, sprechen, Hotkey erneut druecken. Das Ergebnis landet in der Zwischenablage oder direkt im Ziel-Fenster." />
+        </Grid>
     </Grid>
 </Window>

@@ -52,7 +52,11 @@ Provider behavior depends on your configuration:
 - OpenAI API key storage in Windows Credential Manager.
 - Custom names/vocabulary context for transcription and rewrite prompts.
 - Editable workflow prompts for improve, calm, and emoji modes.
+- Setup check for provider keys, Ollama connectivity, hotkeys, and local Whisper files.
+- Friendlier error messages for provider, Ollama, Whisper, and network failures.
 - Prompt presets for the Improve workflow, such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, AI prompts, AI image prompts, music prompts, and technical text.
+- Applying a prompt preset requires confirmation when text already exists, and the previous Improve prompt can be restored immediately afterwards.
+- Resetting workflow prompts requires confirmation so custom prompt text cannot be discarded accidentally.
 - Workflows:
   - `Transcribe`
   - `Improve`
@@ -63,6 +67,11 @@ Provider behavior depends on your configuration:
 - More robust paste handling for classic editor controls such as Notepad++.
 - Local result history under `%APPDATA%\BlitzText\history.json`.
 - Optional local result history.
+- Result history shows the workflow used for each entry.
+- Existing results can be reprocessed with another workflow without recording again.
+- The result view separates the editable spoken transcript from the final text. Reprocessing creates a new history variant, and the prompt for that new variant can be inspected in a collapsed read-only section.
+- A microphone button beside the spoken text records and appends the transcription directly in the editor without rewriting, pasting, or changing the clipboard.
+- A small settings button beside the microphone opens the Windows sound and input-device settings.
 - Settings export/import from the Backup tab.
 - Manual update check from the Backup tab through a small `latest.json` manifest.
 

@@ -4,7 +4,7 @@ PackageVersion: 0.4.1
 InstallerType: wix
 Scope: user
 UpgradeBehavior: install
-ReleaseDate: 2026-06-17
+ReleaseDate: 2026-06-18
 InstallerSwitches:
   Silent: /quiet
   SilentWithProgress: /passive
@@ -16,11 +16,11 @@ Dependencies:
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/EinsVier/blitztext-windows/releases/download/v0.4.1/BlitzText-Windows-0.4.1-win-x64.msi
-  InstallerSha256: C2B90547CBD456619CD83634819A09754928DE6D64ADE9C47D1B9806AE3E30A9
-  ProductCode: '{EA2547B5-CE2C-42F0-A19B-34809AA152D6}'
+  InstallerSha256: FEAF1FD01D2BC20A8B4C8008B5B727CD30BC5D20583C62C999D564C1BA666415
+  ProductCode: '{99EFBF8B-30C7-4E84-B770-B87C440D5319}'
   AppsAndFeaturesEntries:
   - DisplayName: BlitzText Windows
     Publisher: EinsVier
-    ProductCode: '{EA2547B5-CE2C-42F0-A19B-34809AA152D6}'
+    ProductCode: '{99EFBF8B-30C7-4E84-B770-B87C440D5319}'
 ManifestType: installer
 ManifestVersion: 1.10.0
