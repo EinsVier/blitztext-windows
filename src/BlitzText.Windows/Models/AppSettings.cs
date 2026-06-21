@@ -37,6 +37,7 @@ public sealed class AppSettings : INotifyPropertyChanged
     private bool keepOllamaWarm = true;
     private bool saveHistory = true;
     private bool autoPaste;
+    private bool addEmojisToRewrite;
     private WorkflowKind defaultWorkflow = WorkflowKind.Improve;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -186,6 +187,12 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => autoPaste;
         set => SetField(ref autoPaste, value);
+    }
+
+    public bool AddEmojisToRewrite
+    {
+        get => addEmojisToRewrite;
+        set => SetField(ref addEmojisToRewrite, value);
     }
 
     public bool KeepOllamaWarm

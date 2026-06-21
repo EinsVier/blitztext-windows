@@ -61,7 +61,7 @@ Provider behavior depends on your configuration:
   - `Transcribe`
   - `Improve`
   - `Calm`
-  - `Emojis`
+- Optional emoji enhancement can be applied together with the `Improve` and `Calm` workflows.
 - Result is copied to the clipboard when AutoPaste is disabled.
 - Optional target-aware AutoPaste that preserves the previous clipboard contents after inserting the result.
 - More robust paste handling for classic editor controls such as Notepad++.
@@ -174,7 +174,7 @@ Manifest format:
 
 ```json
 {
-  "version": "0.4.1",
+  "version": "0.5.0",
   "url": "https://github.com/EinsVier/blitztext-windows/releases/latest",
   "notesUrl": "https://github.com/EinsVier/blitztext-windows/releases/latest"
 }

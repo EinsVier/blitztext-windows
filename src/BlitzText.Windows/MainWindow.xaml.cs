@@ -50,6 +50,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         settings = settingsStore.Load();
+        MigrateLegacyEmojiWorkflow(settings);
         LoadProviderApiKeys();
         workflowRunner = new BlitzWorkflowRunner(new ProviderFactory(settings), settings);
         targetWindowService = new TargetWindowService(() => new WindowInteropHelper(this).Handle);
@@ -141,7 +142,6 @@ public partial class MainWindow : Window
         TranscribeHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
         ImproveHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
         CalmHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
-        EmojisHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
 
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(settings.DefaultWorkflow, settings.AppLanguage);
         ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(WorkflowKind.Improve, settings.AppLanguage);
@@ -154,7 +154,6 @@ public partial class MainWindow : Window
         TranscribeHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.TranscribeHotkeyId);
         ImproveHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.ImproveHotkeyId);
         CalmHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.CalmHotkeyId);
-        EmojisHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.EmojisHotkeyId);
         OpenAiApiKeyBox.Password = settings.OpenAiApiKey;
         OpenAiTranscriptionModelBox.Text = settings.OpenAiTranscriptionModel;
         OpenAiRewriteModelBox.Text = settings.OpenAiRewriteModel;
@@ -173,6 +172,8 @@ public partial class MainWindow : Window
         ImprovePromptBox.Text = settings.ImprovePrompt;
         CalmPromptBox.Text = settings.CalmPrompt;
         EmojisPromptBox.Text = settings.EmojisPrompt;
+        AddEmojisToRewriteCheckBox.IsChecked = settings.AddEmojisToRewrite;
+        ReprocessAddEmojisCheckBox.IsChecked = settings.AddEmojisToRewrite;
         AutoPasteCheckBox.IsChecked = settings.AutoPaste;
         SaveHistoryCheckBox.IsChecked = settings.SaveHistory;
         KeepOllamaWarmCheckBox.IsChecked = settings.KeepOllamaWarm;
@@ -181,6 +182,7 @@ public partial class MainWindow : Window
         ApplyTheme();
         ApplyLocalization();
         UpdateRecordButton();
+        UpdateEmojiOptionAvailability();
         UpdateActiveProviderBadges();
     }
 
@@ -456,7 +458,6 @@ public partial class MainWindow : Window
             WorkflowKind.Transcribe => settings.TranscribeHotkeyId,
             WorkflowKind.Improve => settings.ImproveHotkeyId,
             WorkflowKind.Calm => settings.CalmHotkeyId,
-            WorkflowKind.Emojis => settings.EmojisHotkeyId,
             _ => settings.ImproveHotkeyId
         };
 
@@ -554,6 +555,29 @@ public partial class MainWindow : Window
         }
 
         Process.Start(new ProcessStartInfo(latestUpdateUrl)
+        {
+            UseShellExecute = true
+        });
+    }
+
+    private void OpenGitHubButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenExternalUrl("https://github.com/EinsVier/blitztext-windows");
+    }
+
+    private void ReportIssueButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenExternalUrl("https://github.com/EinsVier/blitztext-windows/issues/new/choose");
+    }
+
+    private void OpenLicenseButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenExternalUrl("https://github.com/EinsVier/blitztext-windows/blob/master/LICENSE");
+    }
+
+    private static void OpenExternalUrl(string url)
+    {
+        Process.Start(new ProcessStartInfo(url)
         {
             UseShellExecute = true
         });
@@ -657,7 +681,12 @@ public partial class MainWindow : Window
         {
             SourceTextBox.Text = entry.SourceForRewrite;
             ResultBox.Text = entry.Text;
-            ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(entry.Workflow, settings.AppLanguage);
+            var workflow = entry.Workflow == WorkflowKind.Emojis ? WorkflowKind.Improve : entry.Workflow;
+            ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(workflow, settings.AppLanguage);
+            if (entry.Workflow == WorkflowKind.Emojis)
+            {
+                ReprocessAddEmojisCheckBox.IsChecked = true;
+            }
             RefreshPromptDetails();
         }
     }
@@ -669,6 +698,7 @@ public partial class MainWindow : Window
 
     private void ReprocessWorkflowCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
+        UpdateEmojiOptionAvailability();
         RefreshPromptDetails();
     }
 
@@ -1093,6 +1123,7 @@ public partial class MainWindow : Window
             ApplyTheme();
             ApplyLocalization();
             UpdateRecordButton();
+            UpdateEmojiOptionAvailability();
             UpdateActiveProviderBadges();
             ScheduleAutoSave();
         }
@@ -1111,6 +1142,45 @@ public partial class MainWindow : Window
         ScheduleAutoSave();
     }
 
+    private void UpdateEmojiOptionAvailability()
+    {
+        if (AddEmojisToRewriteCheckBox is null || WorkflowCombo is null)
+        {
+            return;
+        }
+
+        var workflow = WorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedWorkflow
+            ? selectedWorkflow.Value
+            : settings.DefaultWorkflow;
+        AddEmojisToRewriteCheckBox.IsEnabled = workflow is WorkflowKind.Improve or WorkflowKind.Calm;
+        AddEmojisToRewriteHelpText.IsEnabled = AddEmojisToRewriteCheckBox.IsEnabled;
+
+        if (ReprocessAddEmojisCheckBox is not null && ReprocessWorkflowCombo is not null)
+        {
+            var reprocessWorkflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedReprocessWorkflow
+                ? selectedReprocessWorkflow.Value
+                : WorkflowKind.Improve;
+            ReprocessAddEmojisCheckBox.IsEnabled = reprocessWorkflow is WorkflowKind.Improve or WorkflowKind.Calm;
+        }
+    }
+
+    private void EmojiOption_Changed(object sender, RoutedEventArgs e)
+    {
+        if (isLoading)
+        {
+            return;
+        }
+
+        var isChecked = sender is System.Windows.Controls.CheckBox checkBox && checkBox.IsChecked == true;
+        isLoading = true;
+        AddEmojisToRewriteCheckBox.IsChecked = isChecked;
+        ReprocessAddEmojisCheckBox.IsChecked = isChecked;
+        isLoading = false;
+        SaveSettingsFromUi(saveToDisk: false);
+        RefreshPromptDetails();
+        ScheduleAutoSave();
+    }
+
     private void DetectTranscribeHotkey_Click(object sender, RoutedEventArgs e)
     {
         DetectHotkeyFor(TranscribeHotkeyCombo);
@@ -1126,17 +1196,11 @@ public partial class MainWindow : Window
         DetectHotkeyFor(CalmHotkeyCombo);
     }
 
-    private void DetectEmojisHotkey_Click(object sender, RoutedEventArgs e)
-    {
-        DetectHotkeyFor(EmojisHotkeyCombo);
-    }
-
     private void RestoreDefaultHotkeysButton_Click(object sender, RoutedEventArgs e)
     {
         TranscribeHotkeyCombo.SelectedItem = HotkeyOptions.FindById("browser-home");
         ImproveHotkeyCombo.SelectedItem = HotkeyOptions.FindById("shift-browser-home");
         CalmHotkeyCombo.SelectedItem = HotkeyOptions.FindById("ctrl-browser-home");
-        EmojisHotkeyCombo.SelectedItem = HotkeyOptions.FindById("alt-browser-home");
         SaveSettingsFromUi(saveToDisk: false);
         RegisterWorkflowHotkeys();
         UpdateRecordButton();
@@ -1203,9 +1267,6 @@ public partial class MainWindow : Window
         settings.CalmHotkeyId = CalmHotkeyCombo.SelectedItem is HotkeyOption calmHotkey
             ? calmHotkey.Id
             : settings.CalmHotkeyId;
-        settings.EmojisHotkeyId = EmojisHotkeyCombo.SelectedItem is HotkeyOption emojisHotkey
-            ? emojisHotkey.Id
-            : settings.EmojisHotkeyId;
         settings.OpenAiApiKey = OpenAiApiKeyBox.Password;
         settings.OpenAiTranscriptionModel = OpenAiTranscriptionModelBox.Text.Trim();
         settings.OpenAiRewriteModel = OpenAiRewriteModelBox.Text.Trim();
@@ -1225,6 +1286,7 @@ public partial class MainWindow : Window
         settings.ImprovePrompt = ImprovePromptBox.Text.Trim();
         settings.CalmPrompt = CalmPromptBox.Text.Trim();
         settings.EmojisPrompt = EmojisPromptBox.Text.Trim();
+        settings.AddEmojisToRewrite = AddEmojisToRewriteCheckBox.IsChecked == true;
         settings.AutoPaste = AutoPasteCheckBox.IsChecked == true;
         settings.SaveHistory = SaveHistoryCheckBox.IsChecked == true;
         settings.KeepOllamaWarm = KeepOllamaWarmCheckBox.IsChecked == true;
@@ -1242,6 +1304,7 @@ public partial class MainWindow : Window
 
     private void ApplyImportedSettings(AppSettings importedSettings)
     {
+        MigrateLegacyEmojiWorkflow(importedSettings);
         var existingApiKey = settings.OpenAiApiKey;
 
         settings.DefaultWorkflow = importedSettings.DefaultWorkflow;
@@ -1268,6 +1331,7 @@ public partial class MainWindow : Window
         settings.ImprovePrompt = importedSettings.ImprovePrompt;
         settings.CalmPrompt = importedSettings.CalmPrompt;
         settings.EmojisPrompt = importedSettings.EmojisPrompt;
+        settings.AddEmojisToRewrite = importedSettings.AddEmojisToRewrite;
         settings.AutoPaste = importedSettings.AutoPaste;
         settings.SaveHistory = importedSettings.SaveHistory;
         settings.KeepOllamaWarm = importedSettings.KeepOllamaWarm;
@@ -1412,6 +1476,7 @@ public partial class MainWindow : Window
         AppThemeLabelText.Text = Localizer.T(language, "AppTheme");
         DictationLanguageLabelText.Text = Localizer.T(language, "DictationLanguage");
         AutoPasteCheckBox.Content = Localizer.T(language, "AutoPaste");
+        AddEmojisToRewriteText.Text = Localizer.T(language, "AddEmojisToRewrite");
         SaveHistoryCheckBox.Content = Localizer.T(language, "SaveHistory");
         KeepOllamaWarmCheckBox.Content = Localizer.T(language, "KeepOllamaWarm");
         StatusLabelText.Text = Localizer.T(language, "Status");
@@ -1420,7 +1485,7 @@ public partial class MainWindow : Window
         ProviderTab.Header = Localizer.T(language, "Provider");
         HotkeysTab.Header = Localizer.T(language, "Hotkeys");
         PromptsTab.Header = Localizer.T(language, "Prompts");
-        BackupTab.Header = Localizer.T(language, "Backup");
+        BackupTab.Header = Localizer.T(language, "Info");
         ResultTab.Header = Localizer.T(language, "Results");
 
         OpenAiKeyHintText.Text = Localizer.T(language, "OpenAiKeyHint");
@@ -1449,11 +1514,9 @@ public partial class MainWindow : Window
         TranscribeHotkeyLabelText.Text = Localizer.T(language, "TranscribeOnly");
         ImproveHotkeyLabelText.Text = Localizer.T(language, "Improve");
         CalmHotkeyLabelText.Text = Localizer.T(language, "Calm");
-        EmojisHotkeyLabelText.Text = Localizer.T(language, "Emojis");
         DetectTranscribeHotkeyButton.Content = Localizer.T(language, "Detect");
         DetectImproveHotkeyButton.Content = Localizer.T(language, "Detect");
         DetectCalmHotkeyButton.Content = Localizer.T(language, "Detect");
-        DetectEmojisHotkeyButton.Content = Localizer.T(language, "Detect");
         RestoreDefaultHotkeysButton.Content = Localizer.T(language, "RestoreDefaultHotkeys");
         HotkeyStatusText.Text = Localizer.T(language, "HotkeysActive");
 
@@ -1469,12 +1532,18 @@ public partial class MainWindow : Window
         RestorePreviousPromptButton.Content = Localizer.T(language, "RestorePreviousPrompt");
         ImprovePromptLabelText.Text = Localizer.T(language, "Improve");
         CalmPromptLabelText.Text = Localizer.T(language, "Calm");
-        EmojisPromptLabelText.Text = Localizer.T(language, "Emojis");
+        EmojiOptionTitleText.Text = Localizer.T(language, "EmojiOption");
+        EmojiOptionHintText.Text = Localizer.T(language, "EmojiOptionHint");
+        ReprocessAddEmojisText.Text = Localizer.T(language, "AddEmojisToRewrite");
         ResetPromptsButton.Content = Localizer.T(language, "ResetPrompts");
 
-        ExportSettingsTitleText.Text = Localizer.T(language, "ExportSettings");
-        AppVersionTitleText.Text = Localizer.T(language, "Version");
+        AppVersionTitleText.Text = Localizer.T(language, "AboutBlitzText");
         AppVersionText.Text = $"BlitzText Windows {GetAppVersion()}";
+        AboutBlitzTextHintText.Text = Localizer.T(language, "AboutBlitzTextHint");
+        OpenGitHubButton.Content = Localizer.T(language, "OpenGitHub");
+        ReportIssueButton.Content = Localizer.T(language, "ReportIssue");
+        OpenLicenseButton.Content = Localizer.T(language, "OpenLicense");
+        UpdatesTitleText.Text = Localizer.T(language, "Updates");
         CheckUpdatesButton.Content = Localizer.T(language, "CheckUpdates");
         OpenUpdateButton.Content = Localizer.T(language, "OpenDownload");
         SetupCheckTitleText.Text = Localizer.T(language, "SetupCheck");
@@ -1484,11 +1553,14 @@ public partial class MainWindow : Window
         {
             UpdateStatusText.Text = Localizer.T(language, "UpdateNotChecked");
         }
+        SettingsBackupTitleText.Text = Localizer.T(language, "SettingsBackup");
+        SettingsBackupHintText.Text = Localizer.T(language, "SettingsBackupHint");
+        ExportSettingsTitleText.Text = Localizer.T(language, "Export");
         ExportSettingsHintText.Text = Localizer.T(language, "ExportSettingsHint");
-        ExportSettingsButton.Content = Localizer.T(language, "Export");
+        ExportSettingsButton.Content = Localizer.T(language, "ExportSettings");
         ImportSettingsTitleText.Text = Localizer.T(language, "ImportSettings");
         ImportSettingsHintText.Text = Localizer.T(language, "ImportSettingsHint");
-        ImportSettingsButton.Content = Localizer.T(language, "Import");
+        ImportSettingsButton.Content = Localizer.T(language, "ImportSettings");
 
         CopyResultButton.Content = Localizer.T(language, "Copy");
         ReprocessResultButton.Content = Localizer.T(language, "Reprocess");
@@ -1507,6 +1579,7 @@ public partial class MainWindow : Window
         FooterText.Text = Localizer.T(language, "Footer");
 
         ControlsHelpText.ToolTip = Localizer.T(language, "HelpControls");
+        AddEmojisToRewriteHelpText.ToolTip = Localizer.T(language, "HelpAddEmojisToRewrite");
         AutoPasteHelpText.ToolTip = Localizer.T(language, "HelpAutoPaste");
         KeepOllamaWarmHelpText.ToolTip = Localizer.T(language, "HelpKeepOllamaWarm");
         OpenAiHelpText.ToolTip = Localizer.T(language, "HelpOpenAi");
@@ -1518,6 +1591,7 @@ public partial class MainWindow : Window
         PromptPresetsHelpText.ToolTip = Localizer.T(language, "HelpPromptPresets");
         CustomNamesHelpText.ToolTip = Localizer.T(language, "HelpCustomNames");
         WorkflowPromptsHelpText.ToolTip = Localizer.T(language, "HelpWorkflowPrompts");
+        EmojiOptionHelpText.ToolTip = Localizer.T(language, "HelpEmojiOption");
         UpdatesHelpText.ToolTip = Localizer.T(language, "HelpUpdates");
         BackupHelpText.ToolTip = Localizer.T(language, "HelpBackup");
         ImportSettingsHelpText.ToolTip = Localizer.T(language, "HelpImportSettings");
@@ -1854,9 +1928,19 @@ public partial class MainWindow : Window
         {
             [WorkflowKind.Transcribe] = HotkeyOptions.FindById(settings.TranscribeHotkeyId),
             [WorkflowKind.Improve] = HotkeyOptions.FindById(settings.ImproveHotkeyId),
-            [WorkflowKind.Calm] = HotkeyOptions.FindById(settings.CalmHotkeyId),
-            [WorkflowKind.Emojis] = HotkeyOptions.FindById(settings.EmojisHotkeyId)
+            [WorkflowKind.Calm] = HotkeyOptions.FindById(settings.CalmHotkeyId)
         };
+    }
+
+    private static void MigrateLegacyEmojiWorkflow(AppSettings appSettings)
+    {
+        if (appSettings.DefaultWorkflow != WorkflowKind.Emojis)
+        {
+            return;
+        }
+
+        appSettings.DefaultWorkflow = WorkflowKind.Improve;
+        appSettings.AddEmojisToRewrite = true;
     }
 
     private static string GetAppVersion()

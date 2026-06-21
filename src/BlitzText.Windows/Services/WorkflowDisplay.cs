@@ -9,7 +9,6 @@ public static class WorkflowDisplay
         new(WorkflowKind.Transcribe, "Nur transkribieren"),
         new(WorkflowKind.Improve, "Verbessern"),
         new(WorkflowKind.Calm, "Entschaerfen"),
-        new(WorkflowKind.Emojis, "Emojis ergaenzen"),
     ];
 
     public static IReadOnlyList<DisplayOption<WorkflowKind>> GetOptions(AppLanguage language)
@@ -20,7 +19,6 @@ public static class WorkflowDisplay
                 new(WorkflowKind.Transcribe, "Transcribe only"),
                 new(WorkflowKind.Improve, "Improve"),
                 new(WorkflowKind.Calm, "Calm down"),
-                new(WorkflowKind.Emojis, "Add emojis"),
             ]
             : Options;
     }
@@ -32,6 +30,11 @@ public static class WorkflowDisplay
 
     public static string GetLabel(WorkflowKind workflow, AppLanguage language)
     {
+        if (workflow == WorkflowKind.Emojis)
+        {
+            return language == AppLanguage.English ? "Add emojis (legacy)" : "Emojis ergaenzen (alt)";
+        }
+
         return GetOptions(language).FirstOrDefault(option => option.Value == workflow)?.Label ?? workflow.ToString();
     }
 

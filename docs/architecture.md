@@ -39,7 +39,8 @@ Prompt customization lives in `AppSettings` and is applied through `PromptContex
 4. Send the prompt to the selected rewrite provider.
 5. Copy the final text to the clipboard.
 
-The current workflows are `Transcribe`, `Improve`, `Calm`, and `Emojis`.
+The visible workflows are `Transcribe`, `Improve`, and `Calm`.
+`Improve` and `Calm` can optionally include the separately configured emoji instruction in the same rewrite request. The legacy `Emojis` enum value remains readable for settings and history compatibility but is no longer offered as a workflow.
 
 The workflow runner accepts a progress callback so the UI can show whether it is recording, transcribing, rewriting, or waiting for a provider. During provider work, the record button becomes a cancel button backed by a cancellation token.
 
