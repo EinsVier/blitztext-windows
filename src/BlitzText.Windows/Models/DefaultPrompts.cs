@@ -2,13 +2,13 @@ namespace BlitzText.Windows.Models;
 
 public static class DefaultPrompts
 {
-    public const string Improve = "Schreibe den diktierten Rohtext klar, natuerlich und gut lesbar. Korrigiere Grammatik, Satzbau, Interpunktion und offensichtliche Diktierfehler. Erhalte Bedeutung, Fakten, Namen, Zahlen, Termine, Sprache und Ton. Wenn der Text Listen, Aufgaben oder Schritte enthaelt, strukturiere sie uebersichtlich. Erfinde keine neuen Inhalte.";
-    public const string Calm = "Formuliere den Text ruhig, sachlich und professionell. Erhalte das konkrete Anliegen, Fakten, Namen, Zahlen, Termine und gewuenschte Handlungen, aber entferne Eskalation, Vorwuerfe und verletzenden Ton. Schwaeche berechtigte Kritik nicht ab. Erfinde keine neuen Inhalte, Zusagen oder Entschuldigungen.";
-    public const string Emojis = "Ergaenze wenige passende Emojis, wenn sie den Text natuerlicher oder freundlicher machen. Verwende Emojis sparsam, maximal dort, wo sie wirklich passen. Bleibe professionell, uebertreibe nicht und veraendere die Aussage nicht.";
+    public const string Improve = "Formuliere den Text klar, natuerlich und gut lesbar. Entferne Fuellwoerter und unnoetige Wiederholungen, ohne den Ton oder die Aussage zu veraendern. Nutze Abschnitte oder Listen nur, wenn sie das Verstaendnis verbessern.";
+    public const string Calm = "Formuliere den Text ruhig, sachlich und respektvoll. Entferne Eskalation, Unterstellungen und verletzende Formulierungen, aber erhalte das konkrete Anliegen, die geforderte Handlung und berechtigte Kritik in ihrer Staerke.";
+    public const string Emojis = "Pruefe zuerst die Textart. Verwende keine Emojis bei technischen, formellen, rechtlichen, konfliktbezogenen oder sensiblen Texten sowie bei Gesundheitsthemen wie Untersuchung, Befund, Diagnose, Krankheit, Arzt oder Behandlung. Wenn keine dieser Ausnahmen vorliegt, fuege ein bis drei passende Emojis ein. Platziere sie natuerlich am Satzende oder als dezente Gliederung. Veraendere Aussage und Ton nicht.";
 
-    public const string ImproveEnglish = "Rewrite the dictated draft into clear, natural, readable text. Correct grammar, punctuation, sentence flow, and obvious dictation mistakes. Preserve meaning, facts, names, numbers, dates, language, and tone. If the text contains lists, tasks, or steps, structure them clearly. Do not invent new content.";
-    public const string CalmEnglish = "Rewrite the text into a calm, factual, professional message. Preserve the concrete concern, facts, names, numbers, dates, and desired actions, but remove escalation, blame, and hurtful tone. Do not weaken valid criticism. Do not invent new content, commitments, or apologies.";
-    public const string EmojisEnglish = "Add a small number of fitting emojis where they make the text feel more natural or friendly. Use emojis sparingly and only where they truly fit. Stay professional, do not overdo it, and do not change the meaning.";
+    public const string ImproveEnglish = "Make the text clear, natural, and easy to read. Remove filler and unnecessary repetition without changing its tone or message. Use paragraphs or lists only when they improve comprehension.";
+    public const string CalmEnglish = "Make the text calm, factual, and respectful. Remove escalation, assumptions, and hurtful phrasing while keeping the concrete concern, requested action, and valid criticism equally clear.";
+    public const string EmojisEnglish = "Classify the text type first. Use no emojis in technical, formal, legal, conflict-related, or sensitive text, or in health topics such as examinations, findings, diagnoses, illness, doctors, or treatment. Otherwise add one to three fitting emojis. Place them naturally at sentence endings or as subtle visual structure. Do not change the message or tone.";
 
     public static string GetImprove(AppLanguage language) => language == AppLanguage.English ? ImproveEnglish : Improve;
 

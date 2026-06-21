@@ -395,7 +395,16 @@
                     <TextBlock x:Name="DefaultModeText" Text="Standardmodus fuer den Aufnahmebutton." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,18" />
 
                     <TextBlock x:Name="WorkflowLabelText" Text="Workflow" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
-                    <ComboBox x:Name="WorkflowCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
+                    <ComboBox x:Name="WorkflowCombo" Margin="0,8,0,10" Height="34" SelectionChanged="Settings_Changed" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                        <CheckBox x:Name="AddEmojisToRewriteCheckBox"
+                                  Checked="EmojiOption_Changed"
+                                  Unchecked="EmojiOption_Changed">
+                            <TextBlock x:Name="AddEmojisToRewriteText"
+                                       Text="Passende Emojis ergaenzen" />
+                        </CheckBox>
+                        <Label x:Name="AddEmojisToRewriteHelpText" Style="{StaticResource HelpTextStyle}" />
+                    </StackPanel>
 
                     <TextBlock x:Name="TranscriptionLabelText" Text="Transkription" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                     <ComboBox x:Name="TranscriptionProviderCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
@@ -539,7 +548,6 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,16,14" VerticalAlignment="Center">
@@ -557,13 +565,9 @@
                             <ComboBox Grid.Row="2" Grid.Column="1" x:Name="CalmHotkeyCombo" Height="32" Margin="0,0,0,14" SelectionChanged="WorkflowHotkey_SelectionChanged" />
                             <Button x:Name="DetectCalmHotkeyButton" Grid.Row="2" Grid.Column="2" Content="Erkennen" Height="32" Margin="10,0,0,14" Click="DetectCalmHotkey_Click" />
 
-                            <TextBlock x:Name="EmojisHotkeyLabelText" Grid.Row="3" Grid.Column="0" Text="Emojis ergaenzen" FontWeight="SemiBold" Margin="0,0,16,14" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="3" Grid.Column="1" x:Name="EmojisHotkeyCombo" Height="32" Margin="0,0,0,14" SelectionChanged="WorkflowHotkey_SelectionChanged" />
-                            <Button x:Name="DetectEmojisHotkeyButton" Grid.Row="3" Grid.Column="2" Content="Erkennen" Height="32" Margin="10,0,0,14" Click="DetectEmojisHotkey_Click" />
+                            <TextBlock x:Name="HotkeyStatusText" Grid.Row="3" Grid.ColumnSpan="3" Text="Workflow-Hotkeys aktiv." TextWrapping="Wrap" Foreground="{DynamicResource BodyTextBrush}" Margin="0,4,0,14" />
 
-                            <TextBlock x:Name="HotkeyStatusText" Grid.Row="4" Grid.ColumnSpan="3" Text="Workflow-Hotkeys aktiv." TextWrapping="Wrap" Foreground="{DynamicResource BodyTextBrush}" Margin="0,4,0,14" />
-
-                            <Button x:Name="RestoreDefaultHotkeysButton" Grid.Row="5" Grid.Column="1" Content="Standard-Hotkeys wiederherstellen" Height="34" Click="RestoreDefaultHotkeysButton_Click" />
+                            <Button x:Name="RestoreDefaultHotkeysButton" Grid.Row="4" Grid.Column="1" Content="Standard-Hotkeys wiederherstellen" Height="34" Click="RestoreDefaultHotkeysButton_Click" />
                         </Grid>
                     </TabItem>
 
@@ -619,12 +623,24 @@
                                          VerticalScrollBarVisibility="Auto" TextChanged="Settings_Changed" />
 
                                 <TextBlock x:Name="CalmPromptLabelText" Text="Entschaerfen" FontWeight="SemiBold" />
-                                <TextBox x:Name="CalmPromptBox" MinHeight="82" Margin="0,8,0,12" TextWrapping="Wrap" AcceptsReturn="True"
+                                <TextBox x:Name="CalmPromptBox" MinHeight="82" Margin="0,8,0,18" TextWrapping="Wrap" AcceptsReturn="True"
                                          VerticalScrollBarVisibility="Auto" TextChanged="Settings_Changed" />
 
-                                <TextBlock x:Name="EmojisPromptLabelText" Text="Emojis ergaenzen" FontWeight="SemiBold" />
-                                <TextBox x:Name="EmojisPromptBox" MinHeight="82" Margin="0,8,0,0" TextWrapping="Wrap" AcceptsReturn="True"
-                                         VerticalScrollBarVisibility="Auto" TextChanged="Settings_Changed" />
+                                <Border BorderBrush="{DynamicResource BorderBrushColor}" BorderThickness="0,1,0,0" Padding="0,16,0,0">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="EmojiOptionTitleText" Text="Emoji-Option" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                            <Label x:Name="EmojiOptionHelpText" Style="{StaticResource HelpTextStyle}" />
+                                        </StackPanel>
+                                        <TextBlock x:Name="EmojiOptionHintText"
+                                                   Text="Diese Anweisung wird optional zusaetzlich auf Verbessern oder Entschaerfen angewendet."
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   Margin="0,6,0,10" />
+                                        <TextBox x:Name="EmojisPromptBox" MinHeight="82" TextWrapping="Wrap" AcceptsReturn="True"
+                                                 VerticalScrollBarVisibility="Auto" TextChanged="Settings_Changed" />
+                                    </StackPanel>
+                                </Border>
 
                                 <Button x:Name="ResetPromptsButton" Content="Prompts zuruecksetzen" Height="34" Margin="0,16,0,0"
                                         Click="ResetPromptsButton_Click" />
@@ -633,7 +649,7 @@
                         </ScrollViewer>
                     </TabItem>
 
-                    <TabItem x:Name="BackupTab" Header="Backup">
+                    <TabItem x:Name="BackupTab" Header="Info">
                         <ScrollViewer Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
                         <Grid Margin="0,16,0,0">
                             <Grid.ColumnDefinitions>
@@ -644,10 +660,22 @@
 
                             <StackPanel Grid.Column="0">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="AppVersionTitleText" Text="Version" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    <TextBlock x:Name="AppVersionTitleText" Text="Ueber BlitzText" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                                     <Label x:Name="UpdatesHelpText" Style="{StaticResource HelpTextStyle}" />
                                 </StackPanel>
-                                <TextBlock x:Name="AppVersionText" Text="BlitzText Windows" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <TextBlock x:Name="AppVersionText" Text="BlitzText Windows" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,10" />
+                                <TextBlock x:Name="AboutBlitzTextHintText"
+                                           Text="Open-Source-App fuer Diktat, Transkription und Textbearbeitung unter Windows."
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                           Margin="0,0,0,12" />
+                                <WrapPanel Margin="0,0,0,22">
+                                    <Button x:Name="OpenGitHubButton" Content="Projekt auf GitHub" Height="34" MinWidth="132" Margin="0,0,8,8" Click="OpenGitHubButton_Click" />
+                                    <Button x:Name="ReportIssueButton" Content="Fehler melden" Height="34" MinWidth="112" Margin="0,0,8,8" Click="ReportIssueButton_Click" />
+                                    <Button x:Name="OpenLicenseButton" Content="MIT-Lizenz" Height="34" MinWidth="92" Margin="0,0,0,8" Click="OpenLicenseButton_Click" />
+                                </WrapPanel>
+
+                                <TextBlock x:Name="UpdatesTitleText" Text="Updates" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                                 <TextBlock x:Name="UpdateStatusText" Text="Noch nicht nach Updates gesucht." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,12" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,22">
                                     <Button x:Name="CheckUpdatesButton" Content="Nach Updates suchen" Height="36" MinWidth="150" Click="CheckUpdatesButton_Click" />
@@ -659,22 +687,29 @@
                                 <Button x:Name="CheckSetupButton" Content="Setup pruefen" Height="36" MinWidth="130" Margin="0,0,0,12" Click="CheckSetupButton_Click" />
                                 <TextBox x:Name="SetupCheckResultBox" MinHeight="120" MaxHeight="220" TextWrapping="Wrap" AcceptsReturn="True"
                                          VerticalScrollBarVisibility="Auto" IsReadOnly="True" Margin="0,0,0,22" />
-
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="ExportSettingsTitleText" Text="Einstellungen exportieren" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
-                                    <Label x:Name="BackupHelpText" Style="{StaticResource HelpTextStyle}" />
-                                </StackPanel>
-                                <TextBlock x:Name="ExportSettingsHintText" Text="Speichert Provider, Hotkeys, Prompts und Workflow-Auswahl als JSON-Datei. Der OpenAI-Key wird nicht exportiert." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />
-                                <Button x:Name="ExportSettingsButton" Content="Exportieren" Height="36" Click="ExportSettingsButton_Click" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="ImportSettingsTitleText" Text="Einstellungen importieren" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    <TextBlock x:Name="SettingsBackupTitleText" Text="Einstellungen sichern" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    <Label x:Name="BackupHelpText" Style="{StaticResource HelpTextStyle}" />
+                                </StackPanel>
+                                <TextBlock x:Name="SettingsBackupHintText"
+                                           Text="Sichert nicht geheime Einstellungen als JSON-Datei oder stellt sie daraus wieder her. API-Schluessel bleiben lokal."
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                           Margin="0,6,0,18" />
+
+                                <TextBlock x:Name="ExportSettingsTitleText" Text="Exportieren" FontWeight="SemiBold" />
+                                <TextBlock x:Name="ExportSettingsHintText" Text="Speichert Provider, Hotkeys, Prompts und Workflow-Auswahl als JSON-Datei." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <Button x:Name="ExportSettingsButton" Content="Einstellungen exportieren" Height="36" Margin="0,0,0,24" Click="ExportSettingsButton_Click" />
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ImportSettingsTitleText" Text="Importieren" FontWeight="SemiBold" />
                                     <Label x:Name="ImportSettingsHelpText" Style="{StaticResource HelpTextStyle}" />
                                 </StackPanel>
-                                <TextBlock x:Name="ImportSettingsHintText" Text="Uebernimmt eine zuvor exportierte JSON-Datei. Bestehende API-Schluessel bleiben lokal erhalten." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,16" />
-                                <Button x:Name="ImportSettingsButton" Content="Importieren" Height="36" Click="ImportSettingsButton_Click" />
+                                <TextBlock x:Name="ImportSettingsHintText" Text="Uebernimmt eine zuvor exportierte JSON-Datei. Bestehende API-Schluessel bleiben lokal erhalten." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <Button x:Name="ImportSettingsButton" Content="Einstellungen importieren" Height="36" Click="ImportSettingsButton_Click" />
                             </StackPanel>
                         </Grid>
                         </ScrollViewer>
@@ -807,6 +842,12 @@
                                             <ComboBox x:Name="ReprocessWorkflowCombo"
                                                       Height="32"
                                                       SelectionChanged="ReprocessWorkflowCombo_SelectionChanged" />
+                                            <CheckBox x:Name="ReprocessAddEmojisCheckBox"
+                                                      Margin="0,8,0,0"
+                                                      Checked="EmojiOption_Changed"
+                                                      Unchecked="EmojiOption_Changed">
+                                                <TextBlock x:Name="ReprocessAddEmojisText" Text="Passende Emojis ergaenzen" />
+                                            </CheckBox>
                                         </StackPanel>
                                         <Button x:Name="ReprocessResultButton"
                                                 Grid.Column="1"
