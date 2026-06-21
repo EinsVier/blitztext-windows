@@ -1,8 +1,89 @@
 # BlitzText Windows
 
-Native Windows implementation of the BlitzText workflow idea: press a hotkey, speak, transcribe the recording, optionally rewrite the text, and copy or paste it into the app you were using.
+**Press a hotkey, speak, and get polished text directly in the app you are using.**
 
-This project is a Windows-first implementation, not a Swift/macOS code port. No macOS source files or brand assets are copied into this repository.
+BlitzText is an open-source Windows dictation app. It records your voice, transcribes it, optionally improves or calms down the wording, and copies or pastes the result into your active window.
+
+![BlitzText Windows interface](docs/assets/blitztext-windows-overview.png)
+
+> A short real-workflow demo is planned to show hotkey → speech → transcription → polished text.
+
+## Install BlitzText 0.5.0
+
+### Recommended: latest GitHub release
+
+Download and run the current per-user MSI:
+
+[**Download BlitzText Windows 0.5.0**](https://github.com/EinsVier/blitztext-windows/releases/download/v0.5.0/BlitzText-Windows-0.5.0-win-x64.msi)
+
+The MSI installs BlitzText for the current Windows user and requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
+
+### Stable winget package
+
+winget currently provides the earlier stable version 0.4.1:
+
+```powershell
+winget install --id EinsVier.BlitzText --exact
+```
+
+## Choose online, local, or both
+
+| Setup | Transcription | Rewriting | What you need |
+| --- | --- | --- | --- |
+| Easiest online setup | OpenAI | OpenAI | Your own OpenAI API key; usage-based API charges may apply |
+| Mostly local | Local `whisper.cpp` | Ollama | Local Whisper executable/model and a local or network Ollama server |
+| Mixed | OpenAI or Local Whisper | OpenAI, OpenRouter, Anthropic, or Ollama | Configure only the providers you want |
+
+- API keys are stored in Windows Credential Manager and are never included in settings exports.
+- Online providers receive the audio or text required for the selected operation.
+- Local Whisper and Ollama can keep transcription and rewriting on hardware you control.
+
+## Why BlitzText
+
+- **Works where you already type:** use a global hotkey and paste the result into the active Windows app.
+- **More than transcription:** improve wording, calm down a message, apply one of 14 prompt presets, or add fitting emojis.
+- **Your choice of providers:** combine online APIs with local Whisper and Ollama instead of being locked into one service.
+
+## How it works
+
+1. Press the configured workflow hotkey.
+2. Speak your text.
+3. Press the hotkey again.
+4. BlitzText transcribes and optionally rewrites the recording.
+5. The result is copied or pasted into the window you were using.
+
+## Status and privacy
+
+BlitzText Windows is an open-source preview for Windows 10 and 11. It is useful for daily testing, but it is not a polished commercial product. Review your provider configuration before using it with confidential material.
+
+Provider behavior depends on your configuration:
+
+- OpenAI transcription and rewrite requests send audio or text to the OpenAI API using your own API key.
+- OpenRouter and Anthropic receive text only when selected for rewriting.
+- Ollama rewrite requests go to the configured local or network Ollama server.
+- Local Whisper transcription runs through your configured `whisper.cpp` executable and model file.
+
+## Feature details
+
+- WPF desktop app with tray controls, global workflow hotkeys, and an optional middle-mouse trigger.
+- German and English UI, automatic/German/English dictation languages, and light/dark/system themes.
+- OpenAI and local `whisper.cpp` transcription.
+- OpenAI, OpenRouter, Anthropic, and Ollama rewriting.
+- Improve and Calm workflows with an optional reusable emoji instruction.
+- Fourteen editable prompt presets for messages, tasks, meetings, technical text, and AI prompts.
+- Editable spoken and final text, local history, workflow reprocessing, and prompt inspection.
+- Target-aware AutoPaste that restores the previous clipboard and supports editors such as Notepad++.
+- Provider tests, setup checks, clearer errors, settings backup, update checks, and GitHub issue links.
+
+## Requirements
+
+- Windows 10/11.
+- .NET 8 Desktop Runtime for running.
+- OpenAI API key only when using OpenAI transcription or rewriting.
+- Optional: OpenRouter API key for OpenRouter rewrite workflows.
+- Optional: Anthropic API key for Claude rewrite workflows.
+- Optional: Ollama installed and running for local rewrite workflows.
+- Optional: `whisper.cpp` executable and a Whisper model file for local transcription.
 
 ## Inspiration
 
@@ -11,80 +92,11 @@ The original Blitztext idea comes from Christoph Magnussen. His macOS-focused op
 - [blitztext.de](https://blitztext.de/)
 - [Speech-to-Text auf Knopfdruck: Meine Blitztext App!](https://youtu.be/ygfqOmDWj94)
 
-This Windows app is an independent native Windows implementation inspired by that workflow idea. It is not an official Christoph Magnussen or BLACKBOAT release.
+This Windows app is an independent Windows-first implementation, not a Swift/macOS code port or an official Christoph Magnussen or BLACKBOAT release. No macOS source files or brand assets are copied into this repository.
 
-## Status
+## Development
 
-BlitzText Windows is an open-source preview. It is useful for daily testing, but it is not a polished commercial product. Use it at your own risk, especially because it works with microphone input, global hotkeys, the clipboard, simulated paste, and optional online or local AI providers.
-
-Provider behavior depends on your configuration:
-
-- OpenAI transcription and rewrite requests send audio or text to the OpenAI API using your own API key.
-- Ollama rewrite requests are sent to the configured local or network Ollama server.
-- Local Whisper transcription runs through your configured `whisper.cpp` executable and model file.
-
-## Current MVP
-
-- WPF desktop app for Windows.
-- Tray icon with open, workflow, and exit commands.
-- Configurable workflow hotkeys, one hotkey per workflow.
-- App language setting for German and English.
-- Theme setting for light, dark, or system mode.
-- Dictation language setting for automatic detection, German, or English.
-- Compact info bubbles for the main settings areas.
-- Hotkey detection dialog for checking special keys such as Browser Home.
-- Optional middle mouse button trigger.
-- Microphone recording to a temporary WAV file via NAudio.
-- OpenAI transcription provider.
-- Local `whisper.cpp` transcription provider.
-- Local Whisper model picker, path browse buttons, test button, and configurable timeout.
-- Text rewrite provider abstraction.
-- OpenAI rewrite provider.
-- OpenRouter rewrite provider.
-- Anthropic rewrite provider for Claude models.
-- Ollama rewrite provider via `http://localhost:11434/api/chat`.
-- Ollama connection test via `/api/tags`.
-- Ollama model picker populated from the connection test results.
-- Optional Ollama warm-up with `keep_alive`.
-- Active rewrite provider badge so the currently used rewrite model is visible.
-- Step-by-step processing status and cancel button while processing.
-- Temporary status highlight when the status text changes.
-- OpenAI API key storage in Windows Credential Manager.
-- Custom names/vocabulary context for transcription and rewrite prompts.
-- Editable workflow prompts for improve, calm, and emoji modes.
-- Setup check for provider keys, Ollama connectivity, hotkeys, and local Whisper files.
-- Friendlier error messages for provider, Ollama, Whisper, and network failures.
-- Prompt presets for the Improve workflow, such as friendly email, short chat, bullet points, task lists, meeting notes, customer replies, decision notes, how-to guides, concise professional messages, AI prompts, AI image prompts, music prompts, and technical text.
-- Applying a prompt preset requires confirmation when text already exists, and the previous Improve prompt can be restored immediately afterwards.
-- Resetting workflow prompts requires confirmation so custom prompt text cannot be discarded accidentally.
-- Workflows:
-  - `Transcribe`
-  - `Improve`
-  - `Calm`
-- Optional emoji enhancement can be applied together with the `Improve` and `Calm` workflows.
-- Result is copied to the clipboard when AutoPaste is disabled.
-- Optional target-aware AutoPaste that preserves the previous clipboard contents after inserting the result.
-- More robust paste handling for classic editor controls such as Notepad++.
-- Local result history under `%APPDATA%\BlitzText\history.json`.
-- Optional local result history.
-- Result history shows the workflow used for each entry.
-- Existing results can be reprocessed with another workflow without recording again.
-- The result view separates the editable spoken transcript from the final text. Reprocessing creates a new history variant, and the prompt for that new variant can be inspected in a collapsed read-only section.
-- A microphone button beside the spoken text records and appends the transcription directly in the editor without rewriting, pasting, or changing the clipboard.
-- A small settings button beside the microphone opens the Windows sound and input-device settings.
-- Settings export/import from the Backup tab.
-- Manual update check from the Backup tab through a small `latest.json` manifest.
-
-## Requirements
-
-- Windows 10/11.
-- .NET 8 Desktop Runtime for running.
-- .NET SDK for development.
-- OpenAI API key for online transcription.
-- Optional: OpenRouter API key for OpenRouter rewrite workflows.
-- Optional: Anthropic API key for Claude rewrite workflows.
-- Optional: Ollama installed and running for local rewrite workflows.
-- Optional: `whisper.cpp` executable and a Whisper model file for local transcription.
+The .NET SDK is required for development.
 
 ## Build
 
@@ -96,22 +108,6 @@ dotnet build
 
 ```powershell
 dotnet run --project src\BlitzText.Windows
-```
-
-## Install With winget
-
-BlitzText Windows is available through the Windows Package Manager:
-
-```powershell
-winget install --id EinsVier.BlitzText -e
-```
-
-winget installs the WiX MSI package and resolves the required .NET 8 Windows Desktop Runtime dependency.
-
-Install to a custom location:
-
-```powershell
-winget install --id EinsVier.BlitzText -e --location "C:\Apps\BlitzText"
 ```
 
 ## Publish
@@ -162,7 +158,7 @@ publish\packages\BlitzText-Windows-latest.zip
 
 ## Update Check
 
-BlitzText does not silently replace itself in the background. The Backup tab can check a small update manifest and open the configured download page when a newer version is available.
+BlitzText does not silently replace itself in the background. The Info tab can check a small update manifest and open the configured download page when a newer version is available.
 
 The default manifest URL is:
 
@@ -260,7 +256,7 @@ Settings are stored as JSON under `%APPDATA%\BlitzText\settings.json`. This incl
 
 The Prompts tab stores custom names and workflow instructions in settings. Custom names are passed as context to OpenAI transcription when supported and to rewrite providers such as OpenAI or Ollama.
 
-The Backup tab can export and import provider settings, hotkeys, prompts, and workflow choices. API keys are intentionally not exported and remain in Windows Credential Manager.
+The Info tab can export and import provider settings, hotkeys, prompts, and workflow choices. API keys are intentionally not exported and remain in Windows Credential Manager.
 
 Windows cannot reliably use the physical `Fn` key as an app hotkey because it is usually handled by the keyboard firmware. BlitzText therefore uses Windows-visible combinations such as `Ctrl+Shift+F8` through `Ctrl+Shift+F12`.
 
