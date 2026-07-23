@@ -41,6 +41,8 @@
         WorkingDirectory="APPFOLDER"
         Icon="BlitzTextIcon" />
       <RemoveFolder Id="RemoveProgramMenuBlitzText" On="uninstall" />
+      <RemoveFolder Id="RemoveApplicationFolder" Directory="APPFOLDER" On="uninstall" />
+      <RemoveFolder Id="RemoveInstallRoot" Directory="InstallRoot" On="uninstall" />
       <RegistryValue Root="HKCU" Key="Software\EinsVier\BlitzText" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
   </Package>

@@ -22,6 +22,14 @@ function Convert-ToWixId {
     return "id_" + [Convert]::ToHexString($bytes).Substring(0, 24)
 }
 
+function Convert-ToWixGuid {
+    param([Parameter(Mandatory = $true)][string]$Text)
+
+    $bytes = [System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($Text))
+    $hex = [Convert]::ToHexString($bytes)
+    return "$($hex.Substring(0, 8))-$($hex.Substring(8, 4))-$($hex.Substring(12, 4))-$($hex.Substring(16, 4))-$($hex.Substring(20, 12))"
+}
+
 function Escape-XmlAttribute {
     param([Parameter(Mandatory = $true)][string]$Text)
 
@@ -55,10 +63,12 @@ $lines.Add('    <ComponentGroup Id="PublishedFiles" Directory="APPFOLDER">')
 
 foreach ($file in $fileItems) {
     $componentId = Convert-ToWixId "cmp:$($file.Name)"
+    $componentGuid = Convert-ToWixGuid "component-guid:$($file.Name)"
     $fileId = Convert-ToWixId "file:$($file.Name)"
     $source = Escape-XmlAttribute $file.FullName
-    $lines.Add("      <Component Id=""$componentId"" Guid=""*"">")
-    $lines.Add("        <File Id=""$fileId"" Source=""$source"" KeyPath=""yes"" />")
+    $lines.Add("      <Component Id=""$componentId"" Guid=""$componentGuid"">")
+    $lines.Add("        <File Id=""$fileId"" Source=""$source"" />")
+    $lines.Add("        <RegistryValue Root=""HKCU"" Key=""Software\EinsVier\BlitzText\InstalledFiles"" Name=""$fileId"" Type=""integer"" Value=""1"" KeyPath=""yes"" />")
     $lines.Add('      </Component>')
 }
 

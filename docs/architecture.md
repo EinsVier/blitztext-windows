@@ -4,7 +4,7 @@ BlitzText Windows is split into four practical layers.
 
 ## Shell
 
-The WPF app owns the main window, tray icon, workflow-specific global keyboard hotkeys, and optional middle mouse button trigger. Each workflow can have its own hotkey so the user can start dictation directly in the desired mode.
+The WPF app owns the main window, tray icon, workflow-specific global keyboard hotkeys, and optional middle mouse button trigger. Each workflow can have its own hotkey so the user can start dictation directly in the desired mode. A named per-session mutex prevents duplicate app instances; a second launch signals the existing process to restore and activate its main window.
 
 ## Recording
 

@@ -8,13 +8,13 @@ BlitzText is an open-source Windows dictation app. It records your voice, transc
 
 > A short real-workflow demo is planned to show hotkey → speech → transcription → polished text.
 
-## Install BlitzText 0.5.0
+## Install BlitzText 0.5.1
 
 ### Recommended: latest GitHub release
 
 Download and run the current per-user MSI:
 
-[**Download BlitzText Windows 0.5.0**](https://github.com/EinsVier/blitztext-windows/releases/download/v0.5.0/BlitzText-Windows-0.5.0-win-x64.msi)
+[**Download BlitzText Windows 0.5.1**](https://github.com/EinsVier/blitztext-windows/releases/download/v0.5.1/BlitzText-Windows-0.5.1-win-x64.msi)
 
 The MSI installs BlitzText for the current Windows user and requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
@@ -170,7 +170,7 @@ Manifest format:
 
 ```json
 {
-  "version": "0.5.0",
+  "version": "0.5.1",
   "url": "https://github.com/EinsVier/blitztext-windows/releases/latest",
   "notesUrl": "https://github.com/EinsVier/blitztext-windows/releases/latest"
 }

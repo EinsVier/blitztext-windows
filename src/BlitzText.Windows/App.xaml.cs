@@ -8,9 +8,16 @@ public partial class App : System.Windows.Application
 {
     private Forms.NotifyIcon? notifyIcon;
     private MainWindow? mainWindow;
+    private SingleInstanceManager? singleInstanceManager;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (!SingleInstanceManager.TryAcquire(out singleInstanceManager))
+        {
+            Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
 
         mainWindow = new MainWindow();
@@ -24,11 +31,15 @@ public partial class App : System.Windows.Application
         notifyIcon.DoubleClick += (_, _) => ShowMainWindow();
 
         ShowMainWindow();
+        singleInstanceManager.RegisterActivationHandler(
+            () => Dispatcher.BeginInvoke(ShowMainWindow));
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         DisposeTrayIcon();
+        singleInstanceManager?.Dispose();
+        singleInstanceManager = null;
         base.OnExit(e);
     }
 
