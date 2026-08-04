@@ -75,6 +75,8 @@ Provider behavior depends on your configuration:
 - Target-aware AutoPaste that restores the previous clipboard and supports editors such as Notepad++.
 - Provider tests, setup checks, clearer errors, settings backup, update checks, and GitHub issue links.
 
+See [Modell-Auswahl](docs/model-selection.md) for recommended transcription and rewrite models, provider-specific selection behavior, and current cost guidance.
+
 ## Requirements
 
 - Windows 10/11.
