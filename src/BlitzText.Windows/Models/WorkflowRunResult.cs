@@ -1,3 +1,3 @@
 namespace BlitzText.Windows.Models;
 
-public sealed record WorkflowRunResult(string Text, string Transcript);
+public sealed record WorkflowRunResult(string Text, string Transcript, double? EstimatedCostUsd = null);

@@ -11,6 +11,7 @@ public sealed class AppSettings : INotifyPropertyChanged
     private DictationLanguage dictationLanguage = DictationLanguage.Auto;
     private TranscriptionProviderKind transcriptionProvider = TranscriptionProviderKind.OpenAI;
     private RewriteProviderKind rewriteProvider = RewriteProviderKind.OpenAI;
+    private PrivacyProfile privacyProfile = PrivacyProfile.Standard;
     private string openAiApiKey = "";
     private string openAiTranscriptionModel = "whisper-1";
     private string openAiRewriteModel = "gpt-4o-mini";
@@ -70,6 +71,12 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => rewriteProvider;
         set => SetField(ref rewriteProvider, value);
+    }
+
+    public PrivacyProfile PrivacyProfile
+    {
+        get => privacyProfile;
+        set => SetField(ref privacyProfile, value);
     }
 
     [JsonIgnore]

@@ -412,6 +412,9 @@
                     <TextBlock x:Name="RewriteLabelText" Text="Umschreiben" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                     <ComboBox x:Name="RewriteProviderCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
 
+                    <TextBlock x:Name="PrivacyProfileLabelText" Text="Datenschutzprofil" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                    <ComboBox x:Name="PrivacyProfileCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
+
                     <TextBlock x:Name="AppLanguageLabelText" Text="App-Sprache" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                     <ComboBox x:Name="AppLanguageCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
 
@@ -457,10 +460,11 @@
                                     <PasswordBox x:Name="OpenAiApiKeyBox" Height="32" Margin="0,8,0,14" PasswordChanged="OpenAiApiKeyBox_PasswordChanged" />
 
                                     <TextBlock x:Name="OpenAiTranscriptionModelLabelText" Text="Transkriptionsmodell" FontWeight="SemiBold" />
-                                    <TextBox x:Name="OpenAiTranscriptionModelBox" Height="32" Margin="0,8,0,14" TextChanged="Settings_Changed" />
+                                    <ComboBox x:Name="OpenAiTranscriptionModelBox" Height="32" Margin="0,8,0,14" IsEditable="True" IsTextSearchEnabled="False" SelectionChanged="Settings_Changed" />
 
                                     <TextBlock x:Name="OpenAiRewriteModelLabelText" Text="Rewrite-Modell" FontWeight="SemiBold" />
-                                    <TextBox x:Name="OpenAiRewriteModelBox" Height="32" Margin="0,8,0,20" TextChanged="Settings_Changed" />
+                                    <ComboBox x:Name="OpenAiRewriteModelBox" Height="32" Margin="0,8,0,20" IsEditable="True" IsTextSearchEnabled="False" SelectionChanged="Settings_Changed" />
+                                    <Button x:Name="TestOpenAiButton" Content="OpenAI testen" Height="34" Margin="0,0,0,20" Click="TestOpenAiButton_Click" />
 
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="OpenRouter" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />

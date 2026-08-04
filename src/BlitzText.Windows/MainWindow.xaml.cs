@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly HistoryStore historyStore = new();
     private readonly CredentialStore credentialStore = new();
     private readonly OllamaConnectionTester ollamaConnectionTester = new();
+    private readonly OpenAiConnectionTester openAiConnectionTester = new(new HttpClient());
     private readonly UpdateChecker updateChecker = new(new HttpClient());
     private readonly AppSettings settings;
     private readonly AudioRecorderService audioRecorder = new();
@@ -73,6 +74,12 @@ public partial class MainWindow : Window
         OllamaRewriteModelCombo.AddHandler(
             System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
             new System.Windows.Controls.TextChangedEventHandler(OllamaRewriteModelCombo_TextChanged));
+        OpenAiTranscriptionModelBox.AddHandler(
+            System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+            new System.Windows.Controls.TextChangedEventHandler(Settings_TextChanged));
+        OpenAiRewriteModelBox.AddHandler(
+            System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+            new System.Windows.Controls.TextChangedEventHandler(Settings_TextChanged));
         LoadHistoryEntries();
         LoadUiFromSettings();
     }
@@ -139,6 +146,9 @@ public partial class MainWindow : Window
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
         TranscriptionProviderCombo.ItemsSource = Enum.GetValues<TranscriptionProviderKind>();
         RewriteProviderCombo.ItemsSource = Enum.GetValues<RewriteProviderKind>();
+        PrivacyProfileCombo.ItemsSource = LanguageDisplay.PrivacyProfileOptions(settings.AppLanguage);
+        OpenAiTranscriptionModelBox.ItemsSource = ModelCatalog.OpenAiTranscriptionModels;
+        OpenAiRewriteModelBox.ItemsSource = ModelCatalog.OpenAiRewriteModels;
         TranscribeHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
         ImproveHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
         CalmHotkeyCombo.ItemsSource = HotkeyOptions.KeyboardOnly;
@@ -151,6 +161,7 @@ public partial class MainWindow : Window
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(settings.DictationLanguage, settings.AppLanguage);
         TranscriptionProviderCombo.SelectedItem = settings.TranscriptionProvider;
         RewriteProviderCombo.SelectedItem = settings.RewriteProvider;
+        PrivacyProfileCombo.SelectedItem = LanguageDisplay.FindPrivacyProfile(settings.PrivacyProfile, settings.AppLanguage);
         TranscribeHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.TranscribeHotkeyId);
         ImproveHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.ImproveHotkeyId);
         CalmHotkeyCombo.SelectedItem = HotkeyOptions.FindById(settings.CalmHotkeyId);
@@ -259,9 +270,10 @@ public partial class MainWindow : Window
                 if (targetWindowService.Activate(activeTargetWindow))
                 {
                     var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(result.Text, activeTargetWindow.Handle);
-                    StatusText.Text = string.IsNullOrWhiteSpace(activeTargetWindow.Title)
-                        ? (settings.AppLanguage == AppLanguage.English ? "Done. Result was pasted." : "Fertig. Ergebnis wurde eingefuegt.")
-                        : (settings.AppLanguage == AppLanguage.English ? $"Done. Result was pasted into: {activeTargetWindow.Title}" : $"Fertig. Ergebnis wurde eingefuegt in: {activeTargetWindow.Title}");
+                            var pasteMessage = string.IsNullOrWhiteSpace(activeTargetWindow.Title)
+                                ? (settings.AppLanguage == AppLanguage.English ? "Done. Result was pasted." : "Fertig. Ergebnis wurde eingefuegt.")
+                                : (settings.AppLanguage == AppLanguage.English ? $"Done. Result was pasted into: {activeTargetWindow.Title}" : $"Fertig. Ergebnis wurde eingefuegt in: {activeTargetWindow.Title}");
+                            StatusText.Text = AddRunDiagnostics(pasteMessage, result);
 
                     if (!clipboardRestored)
                     {
@@ -273,16 +285,20 @@ public partial class MainWindow : Window
                     return;
                 }
 
-                StatusText.Text = settings.AppLanguage == AppLanguage.English
-                    ? "Done. Target window not found; clipboard was left unchanged."
-                    : "Fertig. Ziel-Fenster nicht gefunden; Zwischenablage blieb unveraendert.";
+                        StatusText.Text = AddRunDiagnostics(
+                            settings.AppLanguage == AppLanguage.English
+                                ? "Done. Target window not found; clipboard was left unchanged."
+                                : "Fertig. Ziel-Fenster nicht gefunden; Zwischenablage blieb unveraendert.",
+                            result);
                 return;
             }
 
             ClipboardPasteService.Copy(result.Text);
-            StatusText.Text = settings.AppLanguage == AppLanguage.English
-                ? "Done. Result was copied to the clipboard."
-                : "Fertig. Ergebnis wurde in die Zwischenablage kopiert.";
+            StatusText.Text = AddRunDiagnostics(
+                settings.AppLanguage == AppLanguage.English
+                    ? "Done. Result was copied to the clipboard."
+                    : "Fertig. Ergebnis wurde in die Zwischenablage kopiert.",
+                result);
         }
         catch (OperationCanceledException)
         {
@@ -1129,6 +1145,35 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void TestOpenAiButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveSettingsFromUi(saveToDisk: false);
+        TestOpenAiButton.IsEnabled = false;
+        try
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English ? "Testing OpenAI..." : "Teste OpenAI...";
+            StatusText.Text = await openAiConnectionTester.TestAsync(
+                settings.OpenAiApiKey,
+                settings.OpenAiTranscriptionModel,
+                settings.OpenAiRewriteModel,
+                settings.AppLanguage == AppLanguage.English,
+                CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = UserErrorFormatter.Format(ex, settings.AppLanguage);
+        }
+        finally
+        {
+            TestOpenAiButton.IsEnabled = true;
+        }
+    }
+
+    private void Settings_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        Settings_Changed(sender, e);
+    }
+
     private void WorkflowHotkey_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (isLoading)
@@ -1258,6 +1303,16 @@ public partial class MainWindow : Window
         settings.RewriteProvider = RewriteProviderCombo.SelectedItem is RewriteProviderKind rewriteProvider
             ? rewriteProvider
             : settings.RewriteProvider;
+        settings.PrivacyProfile = PrivacyProfileCombo.SelectedItem is DisplayOption<PrivacyProfile> privacyOption
+            ? privacyOption.Value
+            : settings.PrivacyProfile;
+        if (settings.PrivacyProfile == PrivacyProfile.LocalOnly)
+        {
+            settings.TranscriptionProvider = TranscriptionProviderKind.LocalWhisper;
+            settings.RewriteProvider = RewriteProviderKind.Ollama;
+            TranscriptionProviderCombo.SelectedItem = settings.TranscriptionProvider;
+            RewriteProviderCombo.SelectedItem = settings.RewriteProvider;
+        }
         settings.TranscribeHotkeyId = TranscribeHotkeyCombo.SelectedItem is HotkeyOption transcribeHotkey
             ? transcribeHotkey.Id
             : settings.TranscribeHotkeyId;
@@ -1335,6 +1390,12 @@ public partial class MainWindow : Window
         settings.AutoPaste = importedSettings.AutoPaste;
         settings.SaveHistory = importedSettings.SaveHistory;
         settings.KeepOllamaWarm = importedSettings.KeepOllamaWarm;
+        settings.PrivacyProfile = importedSettings.PrivacyProfile;
+        if (settings.PrivacyProfile == PrivacyProfile.LocalOnly)
+        {
+            settings.TranscriptionProvider = TranscriptionProviderKind.LocalWhisper;
+            settings.RewriteProvider = RewriteProviderKind.Ollama;
+        }
         settings.UpdateManifestUrl = importedSettings.UpdateManifestUrl;
         settings.OpenAiApiKey = existingApiKey;
     }
@@ -1410,6 +1471,7 @@ public partial class MainWindow : Window
         var selectedAppLanguage = settings.AppLanguage;
         var selectedTheme = settings.AppTheme;
         var selectedDictationLanguage = settings.DictationLanguage;
+        var selectedPrivacyProfile = settings.PrivacyProfile;
         var selectedReprocessWorkflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> reprocessWorkflow
             ? reprocessWorkflow.Value
             : WorkflowKind.Improve;
@@ -1422,12 +1484,14 @@ public partial class MainWindow : Window
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
+        PrivacyProfileCombo.ItemsSource = LanguageDisplay.PrivacyProfileOptions(settings.AppLanguage);
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedWorkflow, settings.AppLanguage);
         ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedReprocessWorkflow, settings.AppLanguage);
         SelectPromptPreset(selectedPresetId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(selectedAppLanguage, settings.AppLanguage);
         AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(selectedTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(selectedDictationLanguage, settings.AppLanguage);
+        PrivacyProfileCombo.SelectedItem = LanguageDisplay.FindPrivacyProfile(selectedPrivacyProfile, settings.AppLanguage);
         isLoading = false;
 
         foreach (var entry in allHistoryEntries)
@@ -1472,6 +1536,7 @@ public partial class MainWindow : Window
         WorkflowLabelText.Text = Localizer.T(language, "Workflow");
         TranscriptionLabelText.Text = Localizer.T(language, "Transcription");
         RewriteLabelText.Text = Localizer.T(language, "Rewrite");
+        PrivacyProfileLabelText.Text = Localizer.T(language, "PrivacyProfile");
         AppLanguageLabelText.Text = Localizer.T(language, "AppLanguage");
         AppThemeLabelText.Text = Localizer.T(language, "AppTheme");
         DictationLanguageLabelText.Text = Localizer.T(language, "DictationLanguage");
@@ -1506,6 +1571,7 @@ public partial class MainWindow : Window
         OllamaHintText.Text = Localizer.T(language, "OllamaHint");
         OllamaRewriteModelLabelText.Text = Localizer.T(language, "RewriteModel");
         TestOllamaButton.Content = Localizer.T(language, "TestOllama");
+        TestOpenAiButton.Content = Localizer.T(language, "TestOpenAi");
         SetActiveBadgeText(OpenAiActiveBadge, language);
         SetActiveBadgeText(OpenRouterActiveBadge, language);
         SetActiveBadgeText(OllamaActiveBadge, language);
@@ -1832,6 +1898,26 @@ public partial class MainWindow : Window
             ? System.Windows.Media.Brushes.Firebrick
             : System.Windows.Media.Brushes.SeaGreen;
         StatusText.Text = message;
+    }
+
+    private string AddRunDiagnostics(string message, WorkflowRunResult result)
+    {
+        var details = new List<string>();
+        if (audioRecorder.LastPeakLevel < 0.01d)
+        {
+            details.Add(settings.AppLanguage == AppLanguage.English
+                ? "The recording was very quiet; check the microphone level."
+                : "Die Aufnahme war sehr leise; bitte den Mikrofonpegel pruefen.");
+        }
+
+        if (result.EstimatedCostUsd is > 0d)
+        {
+            details.Add(settings.AppLanguage == AppLanguage.English
+                ? $"Estimated API cost: ${result.EstimatedCostUsd:0.0000}."
+                : $"Geschaetzte API-Kosten: ${result.EstimatedCostUsd:0.0000}.");
+        }
+
+        return details.Count == 0 ? message : $"{message} {string.Join(" ", details)}";
     }
 
     private void AutoSaveSettings()

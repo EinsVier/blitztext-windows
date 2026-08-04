@@ -9,6 +9,10 @@ eigene Modellliste.
 
 Die OpenAI-Felder akzeptieren Modell-IDs als freie Eingabe.
 
+BlitzText bietet dafür zusätzlich eine editierbare Auswahlliste mit gängigen
+Empfehlungen. Eigene oder neue Modell-IDs können weiterhin direkt eingetragen
+werden.
+
 | Aufgabe | Empfohlener Startpunkt | Wann wechseln? |
 | --- | --- | --- |
 | Aufgenommene Audiodatei transkribieren | `gpt-transcribe` | `whisper-1` für Wort-/Segment-Zeitstempel oder englische Übersetzung; `gpt-4o-transcribe-diarize` für Sprecherlabels |
@@ -34,6 +38,10 @@ Dokumentationsprüfung nennt OpenAI ungefähr:
 
 Die [offizielle OpenAI-Preisliste](https://developers.openai.com/api/docs/pricing) ist maßgeblich.
 
+Die in BlitzText hinterlegten Eigennamen werden bei `gpt-transcribe` zusätzlich
+als `keywords[]` übertragen. Dadurch können Namen, Ortsangaben und Fachbegriffe
+gezielter erkannt werden. Die Liste wird im Tab **Prompts** gepflegt.
+
 ## Andere Provider
 
 - **OpenRouter:** Rewrite-Modell als Provider-Modell-ID eintragen, zum Beispiel
@@ -56,6 +64,24 @@ Die Auswahl befindet sich im Tab **Provider**:
 2. Rewrite-Provider und Rewrite-Modell auswählen.
 3. Bei OpenAI den API-Key hinterlegen.
 4. Mit dem Provider-Test prüfen und anschließend eine echte Aufnahme testen.
+
+Der OpenAI-Test prüft API-Key und Modellliste. Eine als „nicht gelistet"
+gemeldete Modell-ID ist ein Hinweis zur Prüfung, aber nicht allein ein Beweis,
+dass der Transkriptionsendpunkt sie nicht akzeptiert.
+
+### Datenschutzprofil
+
+Mit **Nur lokal** erzwingt BlitzText lokale Transkription über Local Whisper und
+lokales Rewrite über Ollama. Die Cloud-Provider bleiben konfiguriert, werden in
+diesem Profil aber nicht verwendet. Im Standardprofil können die Provider frei
+kombiniert werden.
+
+Nach jeder Cloud-Verarbeitung zeigt BlitzText außerdem eine grobe
+Kostenindikation. Sie basiert auf Aufnahmedauer, Modell und Textlänge und ist
+nicht als Rechnungsbetrag zu verstehen.
+
+Nach einer sehr leisen Aufnahme erscheint ein Hinweis, den Mikrofonpegel oder
+das aktive Windows-Aufnahmegerät zu prüfen.
 
 Die voreingestellten Werte sind derzeit `whisper-1` für OpenAI-Transkription
 und `gpt-4o-mini` für OpenAI-Rewrite. Für neue Aufnahmen mit OpenAI kann als

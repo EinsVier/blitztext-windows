@@ -33,6 +33,14 @@ public sealed class OpenAiTranscriptionProvider(AppSettings settings, HttpClient
             content.Add(new StringContent(prompt), "prompt");
         }
 
+        if (settings.OpenAiTranscriptionModel.Equals("gpt-transcribe", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var keyword in PromptContextBuilder.GetCustomNameKeywords(settings))
+            {
+                content.Add(new StringContent(keyword), "keywords[]");
+            }
+        }
+
         var language = LanguageDisplay.ToOpenAiCode(settings.DictationLanguage);
         if (!string.IsNullOrWhiteSpace(language))
         {
