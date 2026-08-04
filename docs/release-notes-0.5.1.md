@@ -7,5 +7,6 @@ BlitzText 0.5.1 fixes an intermittent shutdown symptom caused by multiple app in
 - Prevents more than one BlitzText instance from running in the current Windows session.
 - Restores and activates the existing BlitzText window when the app is launched again.
 - Releases the single-instance lock during a normal shutdown so BlitzText can be started again immediately.
+- Allows the reusable emoji option to be used with Transcribe only as a minimal post-transcription emoji pass, while keeping plain Transcribe only unchanged when the option is off.
 
 The MSI requires the .NET 8 Desktop Runtime.

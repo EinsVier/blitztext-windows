@@ -27,7 +27,7 @@ Ollama settings can be checked with `OllamaConnectionTester`, which calls `/api/
 
 If enabled, BlitzText sends a tiny Ollama chat request with `keep_alive` so the configured rewrite model stays warm for faster follow-up rewrites.
 
-Prompt customization lives in `AppSettings` and is applied through `PromptContextBuilder` and `WorkflowPromptFactory`. Custom names are included as vocabulary context for transcription and rewrite, while workflow-specific instructions are added to the rewrite prompt for improve, calm, and emoji modes.
+Prompt customization lives in `AppSettings` and is applied through `PromptContextBuilder` and `WorkflowPromptFactory`. Custom names are included as vocabulary context for transcription and rewrite, while workflow-specific instructions are added to the rewrite prompt for improve, calm, and emoji modes. When the reusable emoji option is enabled for `Transcribe`, BlitzText keeps the transcription unchanged except for the requested emoji handling and sends that minimal prompt to the selected rewrite provider.
 
 ## Workflows
 
@@ -40,7 +40,7 @@ Prompt customization lives in `AppSettings` and is applied through `PromptContex
 5. Copy the final text to the clipboard.
 
 The visible workflows are `Transcribe`, `Improve`, and `Calm`.
-`Improve` and `Calm` can optionally include the separately configured emoji instruction in the same rewrite request. The legacy `Emojis` enum value remains readable for settings and history compatibility but is no longer offered as a workflow.
+`Transcribe`, `Improve`, and `Calm` can optionally include the separately configured emoji instruction in the same rewrite request. Without the emoji option, `Transcribe` still returns the raw transcription without a rewrite step. The legacy `Emojis` enum value remains readable for settings and history compatibility but is no longer offered as a workflow.
 
 The workflow runner accepts a progress callback so the UI can show whether it is recording, transcribing, rewriting, or waiting for a provider. During provider work, the record button becomes a cancel button backed by a cancellation token.
 

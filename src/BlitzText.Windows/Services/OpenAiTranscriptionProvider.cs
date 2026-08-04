@@ -36,7 +36,14 @@ public sealed class OpenAiTranscriptionProvider(AppSettings settings, HttpClient
         var language = LanguageDisplay.ToOpenAiCode(settings.DictationLanguage);
         if (!string.IsNullOrWhiteSpace(language))
         {
-            content.Add(new StringContent(language), "language");
+            if (settings.OpenAiTranscriptionModel.Equals("gpt-transcribe", StringComparison.OrdinalIgnoreCase))
+            {
+                content.Add(new StringContent(language), "languages[]");
+            }
+            else
+            {
+                content.Add(new StringContent(language), "language");
+            }
         }
 
         request.Content = content;
