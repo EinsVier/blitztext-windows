@@ -69,7 +69,7 @@ Provider behavior depends on your configuration:
 - German and English UI, automatic/German/English dictation languages, and light/dark/system themes.
 - OpenAI and local `whisper.cpp` transcription.
 - OpenAI, OpenRouter, Anthropic, and Ollama rewriting.
-- Improve and Calm workflows with an optional reusable emoji instruction.
+- Transcribe only, Improve, and Calm workflows with an optional reusable emoji instruction.
 - Fourteen editable prompt presets for messages, tasks, meetings, technical text, and AI prompts.
 - Editable spoken and final text, local history, workflow reprocessing, and prompt inspection.
 - Target-aware AutoPaste that restores the previous clipboard and supports editors such as Notepad++.

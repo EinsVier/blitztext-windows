@@ -1152,7 +1152,7 @@ public partial class MainWindow : Window
         var workflow = WorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedWorkflow
             ? selectedWorkflow.Value
             : settings.DefaultWorkflow;
-        AddEmojisToRewriteCheckBox.IsEnabled = workflow is WorkflowKind.Improve or WorkflowKind.Calm;
+        AddEmojisToRewriteCheckBox.IsEnabled = workflow is WorkflowKind.Transcribe or WorkflowKind.Improve or WorkflowKind.Calm;
         AddEmojisToRewriteHelpText.IsEnabled = AddEmojisToRewriteCheckBox.IsEnabled;
 
         if (ReprocessAddEmojisCheckBox is not null && ReprocessWorkflowCombo is not null)
@@ -1160,7 +1160,7 @@ public partial class MainWindow : Window
             var reprocessWorkflow = ReprocessWorkflowCombo.SelectedItem is DisplayOption<WorkflowKind> selectedReprocessWorkflow
                 ? selectedReprocessWorkflow.Value
                 : WorkflowKind.Improve;
-            ReprocessAddEmojisCheckBox.IsEnabled = reprocessWorkflow is WorkflowKind.Improve or WorkflowKind.Calm;
+            ReprocessAddEmojisCheckBox.IsEnabled = reprocessWorkflow is WorkflowKind.Transcribe or WorkflowKind.Improve or WorkflowKind.Calm;
         }
     }
 
