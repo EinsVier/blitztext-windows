@@ -13,6 +13,8 @@ public sealed class AudioRecorderService : IDisposable
     private string? currentPath;
     private DateTimeOffset recordingStartedAt;
 
+    public double LastPeakLevel { get; private set; }
+
     public bool IsRecording => waveIn is not null;
 
     public Task StartAsync()
@@ -31,6 +33,7 @@ public sealed class AudioRecorderService : IDisposable
         Directory.CreateDirectory(directory);
         currentPath = Path.Combine(directory, $"recording-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.wav");
         recordingStartedAt = DateTimeOffset.UtcNow;
+        LastPeakLevel = 0d;
 
         waveIn = new WaveInEvent
         {
@@ -38,7 +41,18 @@ public sealed class AudioRecorderService : IDisposable
         };
         writer = new WaveFileWriter(currentPath, waveIn.WaveFormat);
 
-        waveIn.DataAvailable += (_, args) => writer?.Write(args.Buffer, 0, args.BytesRecorded);
+        waveIn.DataAvailable += (_, args) =>
+        {
+            writer?.Write(args.Buffer, 0, args.BytesRecorded);
+            for (var offset = 0; offset + 1 < args.BytesRecorded; offset += 2)
+            {
+                var sample = Math.Abs(BitConverter.ToInt16(args.Buffer, offset) / 32768d);
+                if (sample > LastPeakLevel)
+                {
+                    LastPeakLevel = sample;
+                }
+            }
+        };
         waveIn.StartRecording();
         return Task.CompletedTask;
     }

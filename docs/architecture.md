@@ -27,6 +27,8 @@ Ollama settings can be checked with `OllamaConnectionTester`, which calls `/api/
 
 If enabled, BlitzText sends a tiny Ollama chat request with `keep_alive` so the configured rewrite model stays warm for faster follow-up rewrites.
 
+Model selection is provider-specific and documented in [docs/model-selection.md](model-selection.md). OpenAI transcription and rewrite model IDs are editable settings; Ollama models are discovered from the configured server, and Local Whisper models are selected from local files.
+
 Prompt customization lives in `AppSettings` and is applied through `PromptContextBuilder` and `WorkflowPromptFactory`. Custom names are included as vocabulary context for transcription and rewrite, while workflow-specific instructions are added to the rewrite prompt for improve, calm, and emoji modes. When the reusable emoji option is enabled for `Transcribe`, BlitzText keeps the transcription unchanged except for the requested emoji handling and sends that minimal prompt to the selected rewrite provider.
 
 ## Workflows

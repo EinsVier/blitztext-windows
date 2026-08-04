@@ -74,6 +74,9 @@ Provider behavior depends on your configuration:
 - Editable spoken and final text, local history, workflow reprocessing, and prompt inspection.
 - Target-aware AutoPaste that restores the previous clipboard and supports editors such as Notepad++.
 - Provider tests, setup checks, clearer errors, settings backup, update checks, and GitHub issue links.
+- Editable model presets, OpenAI transcription keywords, local-only privacy mode, and approximate per-run API cost feedback.
+
+See [Modell-Auswahl](docs/model-selection.md) for recommended transcription and rewrite models, provider-specific selection behavior, and current cost guidance.
 
 ## Requirements
 

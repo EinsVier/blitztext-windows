@@ -24,7 +24,8 @@ public sealed class BlitzWorkflowRunner(ProviderFactory providerFactory, AppSett
         var transcript = await transcriptionProvider.TranscribeAsync(wavPath, cancellationToken);
 
         var text = await RunTextAsync(transcript, workflow, progress, cancellationToken);
-        return new WorkflowRunResult(text, transcript);
+        var estimatedCostUsd = CostEstimator.EstimateUsd(wavPath, settings, transcript, text);
+        return new WorkflowRunResult(text, transcript, estimatedCostUsd);
     }
 
     public async Task<string> RunTextAsync(

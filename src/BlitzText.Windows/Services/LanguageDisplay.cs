@@ -36,6 +36,19 @@ public static class LanguageDisplay
             ];
     }
 
+    public static IReadOnlyList<DisplayOption<PrivacyProfile>> PrivacyProfileOptions(AppLanguage appLanguage)
+    {
+        return appLanguage == AppLanguage.English
+            ? [
+                new(PrivacyProfile.Standard, "Cloud allowed"),
+                new(PrivacyProfile.LocalOnly, "Local only")
+            ]
+            : [
+                new(PrivacyProfile.Standard, "Cloud erlaubt"),
+                new(PrivacyProfile.LocalOnly, "Nur lokal")
+            ];
+    }
+
     public static IReadOnlyList<DisplayOption<AppTheme>> AppThemeOptions(AppLanguage appLanguage)
     {
         return appLanguage == AppLanguage.English
@@ -66,6 +79,12 @@ public static class LanguageDisplay
     public static DisplayOption<AppTheme> FindAppTheme(AppTheme value, AppLanguage appLanguage)
     {
         return AppThemeOptions(appLanguage).FirstOrDefault(option => option.Value == value) ?? AppThemeOptions(appLanguage)[0];
+    }
+
+    public static DisplayOption<PrivacyProfile> FindPrivacyProfile(PrivacyProfile value, AppLanguage appLanguage)
+    {
+        return PrivacyProfileOptions(appLanguage).FirstOrDefault(option => option.Value == value)
+            ?? PrivacyProfileOptions(appLanguage)[0];
     }
 
     public static string ToWhisperCode(DictationLanguage language)

@@ -30,6 +30,12 @@ public static class PromptContextBuilder
             : $"Achte besonders auf diese Eigennamen und Schreibweisen: {names}";
     }
 
+    public static IReadOnlyList<string> GetCustomNameKeywords(AppSettings settings)
+    {
+        return FormatCustomNames(settings.CustomNames)
+            .Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
     private static string FormatCustomNames(string customNames)
     {
         var names = customNames
