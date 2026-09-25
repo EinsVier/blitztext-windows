@@ -14,6 +14,15 @@
 
     <Icon Id="BlitzTextIcon" SourceFile="$(var.RepoRoot)\src\BlitzText.Windows\Resources\blitztext.ico" />
     <Property Id="ARPPRODUCTICON" Value="BlitzTextIcon" />
+    <CustomAction Id="SetArpInstallLocation" Property="ARPINSTALLLOCATION" Value="[APPFOLDER]" />
+    <Property Id="APPFOLDER">
+      <RegistrySearch
+        Id="RememberedInstallFolder"
+        Root="HKCU"
+        Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]"
+        Name="InstallLocation"
+        Type="raw" />
+    </Property>
     <WixVariable Id="WixUILicenseRtf" Value="$(var.RepoRoot)\setup\wix\License.rtf" />
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="APPFOLDER" />
 
@@ -31,6 +40,10 @@
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="ApplicationShortcut" />
     </Feature>
+
+    <InstallExecuteSequence>
+      <Custom Action="SetArpInstallLocation" Before="WriteRegistryValues" Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
 
     <Component Id="ApplicationShortcut" Directory="ProgramMenuBlitzText" Guid="12F587A6-86B5-49B1-B79D-D737A9262DA0">
       <Shortcut

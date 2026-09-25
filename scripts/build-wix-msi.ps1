@@ -67,8 +67,7 @@ foreach ($file in $fileItems) {
     $fileId = Convert-ToWixId "file:$($file.Name)"
     $source = Escape-XmlAttribute $file.FullName
     $lines.Add("      <Component Id=""$componentId"" Guid=""$componentGuid"">")
-    $lines.Add("        <File Id=""$fileId"" Source=""$source"" />")
-    $lines.Add("        <RegistryValue Root=""HKCU"" Key=""Software\EinsVier\BlitzText\InstalledFiles"" Name=""$fileId"" Type=""integer"" Value=""1"" KeyPath=""yes"" />")
+    $lines.Add("        <File Id=""$fileId"" Source=""$source"" KeyPath=""yes"" />")
     $lines.Add('      </Component>')
 }
 

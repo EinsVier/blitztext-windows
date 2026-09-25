@@ -9,6 +9,8 @@ BlitzText 0.5.2 improves daily dictation and makes the local transcription setup
 - Use built-in dictation profiles for general text, email, technology and code, or Neukalen names; save your own profiles as well.
 - Local `whisper.cpp` now receives the configured dictation prompt safely and shows useful diagnostics after transcription.
 - OpenAI rewrite requests handle current GPT-6 models with their supported request options.
+- The MSI remembers a custom install folder so that uninstall removes the same files again.
+- The Improve workflow explicitly repairs missing spaces between words and restores sensible punctuation.
 
 ## Notes
 
