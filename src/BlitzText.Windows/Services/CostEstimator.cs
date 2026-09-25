@@ -32,6 +32,7 @@ public static class CostEstimator
             var outputTokens = Math.Max(finalText.Length / 4d, 1d);
             total += settings.OpenAiRewriteModel.ToLowerInvariant() switch
             {
+                "gpt-6-luna" => inputTokens / 1_000_000d * 0.10d + outputTokens / 1_000_000d * 0.50d,
                 "gpt-4o-mini" => inputTokens / 1_000_000d * 0.15d + outputTokens / 1_000_000d * 0.60d,
                 "gpt-4.1-mini" => inputTokens / 1_000_000d * 0.40d + outputTokens / 1_000_000d * 1.60d,
                 "gpt-4.1" => inputTokens / 1_000_000d * 2.00d + outputTokens / 1_000_000d * 8.00d,

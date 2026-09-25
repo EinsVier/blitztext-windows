@@ -11,6 +11,7 @@ public static class ModelCatalog
 
     public static IReadOnlyList<string> OpenAiRewriteModels { get; } =
     [
+        "gpt-6-luna",
         "gpt-4o-mini",
         "gpt-4.1-mini",
         "gpt-4.1"
