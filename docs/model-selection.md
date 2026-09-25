@@ -17,7 +17,7 @@ werden.
 | --- | --- | --- |
 | Aufgenommene Audiodatei transkribieren | `gpt-transcribe` | `whisper-1` für Wort-/Segment-Zeitstempel oder englische Übersetzung; `gpt-4o-transcribe-diarize` für Sprecherlabels |
 | Live-Transkription | `gpt-live-transcribe` | Nur relevant für einen späteren Live-Audio-Workflow |
-| Text vorsichtig verbessern | `gpt-4o-mini` | Ein stärkeres Textmodell verwenden, wenn die Rewrite-Qualität bei anspruchsvollen Texten nicht genügt |
+| Text vorsichtig verbessern | `gpt-4o-mini` | `gpt-6-luna` für anspruchsvollere Anweisungen und mehr Kontext; GPT-6-Modelle verwenden `reasoning_effort: low` |
 
 Für `gpt-transcribe` sendet BlitzText Sprachhinweise als `languages[]`.
 Legacy-Modelle wie `whisper-1` und `gpt-4o-mini-transcribe` verwenden weiterhin
@@ -35,6 +35,7 @@ Dokumentationsprüfung nennt OpenAI ungefähr:
 - `gpt-4o-mini-transcribe`: $0,003 pro Audiominute
 - `gpt-transcribe`: $0,0045 pro Audiominute
 - `gpt-4o-mini`: $0,15 pro 1 Mio. Input-Tokens und $0,60 pro 1 Mio. Output-Tokens
+- `gpt-6-luna`: $0,10 pro 1 Mio. Input-Tokens und $0,50 pro 1 Mio. Output-Tokens
 
 Die [offizielle OpenAI-Preisliste](https://developers.openai.com/api/docs/pricing) ist maßgeblich.
 
@@ -78,7 +79,9 @@ kombiniert werden.
 
 Nach jeder Cloud-Verarbeitung zeigt BlitzText außerdem eine grobe
 Kostenindikation. Sie basiert auf Aufnahmedauer, Modell und Textlänge und ist
-nicht als Rechnungsbetrag zu verstehen.
+nicht als Rechnungsbetrag zu verstehen. Bei GPT-6 Luna können zusätzliche
+Reasoning-Tokens anfallen, die die lokale Textlängenschätzung nicht vollständig
+abbildet.
 
 Nach einer sehr leisen Aufnahme erscheint ein Hinweis, den Mikrofonpegel oder
 das aktive Windows-Aufnahmegerät zu prüfen.
