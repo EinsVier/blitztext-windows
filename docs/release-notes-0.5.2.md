@@ -14,4 +14,4 @@ BlitzText 0.5.2 improves daily dictation and makes the local transcription setup
 
 ## Notes
 
-This document prepares the release. The public update manifest and download links remain on 0.5.1 until the 0.5.2 release artifacts have been published.
+The MSI installs for the current Windows user and requires the .NET 8 Desktop Runtime. The ZIP package includes scripts for per-user installation and removal.
