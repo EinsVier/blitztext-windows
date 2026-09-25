@@ -5,7 +5,7 @@ namespace BlitzText.Windows.Services;
 
 public sealed class BlitzWorkflowRunner(ProviderFactory providerFactory, AppSettings settings)
 {
-    private static readonly TimeSpan MinimumOpenAiRecordingDuration = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan MinimumOpenAiRecordingDuration = TimeSpan.FromSeconds(1);
 
     public async Task<string> RunAsync(
         string wavPath,
@@ -28,8 +28,8 @@ public sealed class BlitzWorkflowRunner(ProviderFactory providerFactory, AppSett
             if (reader.TotalTime < MinimumOpenAiRecordingDuration)
             {
                 var message = settings.AppLanguage == AppLanguage.English
-                    ? "Recording is shorter than 2 seconds. It was not sent to the OpenAI API. Please record for longer."
-                    : "Die Aufnahme ist kürzer als 2 Sekunden. Sie wurde nicht an die OpenAI-API gesendet. Bitte länger aufnehmen.";
+                    ? "Recording is shorter than 1 second. It was not sent to the OpenAI API. Please record for longer."
+                    : "Die Aufnahme ist kürzer als 1 Sekunde. Sie wurde nicht an die OpenAI-API gesendet. Bitte länger aufnehmen.";
                 throw new InvalidOperationException(message);
             }
         }
