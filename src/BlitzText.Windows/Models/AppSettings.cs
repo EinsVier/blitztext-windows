@@ -23,10 +23,12 @@ public sealed class AppSettings : INotifyPropertyChanged
     private string localWhisperExecutablePath = "";
     private string localWhisperModelPath = "";
     private int localWhisperTimeoutSeconds = 180;
+    private int microphoneDeviceNumber;
     private string ollamaBaseUrl = "http://localhost:11434";
     private string ollamaRewriteModel = "llama3.1";
     private string customNames = "";
     private string transcriptionPrompt = "";
+    private string dictationProfileId = "general";
     private string improvePrompt = DefaultPrompts.Improve;
     private string calmPrompt = DefaultPrompts.Calm;
     private string emojisPrompt = DefaultPrompts.Emojis;
@@ -148,6 +150,12 @@ public sealed class AppSettings : INotifyPropertyChanged
         set => SetField(ref localWhisperTimeoutSeconds, Math.Clamp(value, 30, 900));
     }
 
+    public int MicrophoneDeviceNumber
+    {
+        get => microphoneDeviceNumber;
+        set => SetField(ref microphoneDeviceNumber, Math.Max(0, value));
+    }
+
     public string OllamaBaseUrl
     {
         get => ollamaBaseUrl;
@@ -171,6 +179,14 @@ public sealed class AppSettings : INotifyPropertyChanged
         get => transcriptionPrompt;
         set => SetField(ref transcriptionPrompt, value);
     }
+
+    public string DictationProfileId
+    {
+        get => dictationProfileId;
+        set => SetField(ref dictationProfileId, value);
+    }
+
+    public List<SavedDictationProfile> SavedDictationProfiles { get; set; } = [];
 
     public string ImprovePrompt
     {

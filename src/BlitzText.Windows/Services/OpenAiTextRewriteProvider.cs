@@ -19,16 +19,26 @@ public sealed class OpenAiTextRewriteProvider(AppSettings settings, HttpClient h
             throw new InvalidOperationException("OpenAI API key is missing.");
         }
 
-        var payload = new
+        var messages = new[]
         {
-            model = settings.OpenAiRewriteModel,
-            messages = new[]
-            {
-                new { role = "system", content = "You are a concise writing assistant. Return only the requested final text." },
-                new { role = "user", content = prompt }
-            },
-            temperature = 0.2
+            new { role = "system", content = "You are a concise writing assistant. Return only the requested final text." },
+            new { role = "user", content = prompt }
         };
+
+        var payload = new Dictionary<string, object?>
+        {
+            ["model"] = settings.OpenAiRewriteModel,
+            ["messages"] = messages
+        };
+
+        if (settings.OpenAiRewriteModel.StartsWith("gpt-6-", StringComparison.OrdinalIgnoreCase))
+        {
+            payload["reasoning_effort"] = "low";
+        }
+        else
+        {
+            payload["temperature"] = 0.2;
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.OpenAiApiKey);

@@ -1,4 +1,5 @@
 using System.IO;
+using BlitzText.Windows.Models;
 using NAudio.Wave;
 
 namespace BlitzText.Windows.Services;
@@ -14,10 +15,18 @@ public sealed class AudioRecorderService : IDisposable
     private DateTimeOffset recordingStartedAt;
 
     public double LastPeakLevel { get; private set; }
+    public double CurrentPeakLevel { get; private set; }
 
     public bool IsRecording => waveIn is not null;
 
-    public Task StartAsync()
+    public static IReadOnlyList<DisplayOption<int>> GetInputDevices()
+    {
+        return Enumerable.Range(0, WaveInEvent.DeviceCount)
+            .Select(index => new DisplayOption<int>(index, WaveInEvent.GetCapabilities(index).ProductName))
+            .ToArray();
+    }
+
+    public Task StartAsync(int deviceNumber = 0)
     {
         if (IsRecording)
         {
@@ -29,14 +38,21 @@ public sealed class AudioRecorderService : IDisposable
             throw new InvalidOperationException("Kein Mikrofon gefunden.");
         }
 
+        if (deviceNumber < 0 || deviceNumber >= WaveInEvent.DeviceCount)
+        {
+            deviceNumber = 0;
+        }
+
         var directory = Path.Combine(Path.GetTempPath(), "BlitzText");
         Directory.CreateDirectory(directory);
         currentPath = Path.Combine(directory, $"recording-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.wav");
         recordingStartedAt = DateTimeOffset.UtcNow;
         LastPeakLevel = 0d;
+        CurrentPeakLevel = 0d;
 
         waveIn = new WaveInEvent
         {
+            DeviceNumber = deviceNumber,
             WaveFormat = new WaveFormat(16000, 16, 1)
         };
         writer = new WaveFileWriter(currentPath, waveIn.WaveFormat);
@@ -44,14 +60,17 @@ public sealed class AudioRecorderService : IDisposable
         waveIn.DataAvailable += (_, args) =>
         {
             writer?.Write(args.Buffer, 0, args.BytesRecorded);
+            var bufferPeak = 0d;
             for (var offset = 0; offset + 1 < args.BytesRecorded; offset += 2)
             {
                 var sample = Math.Abs(BitConverter.ToInt16(args.Buffer, offset) / 32768d);
+                bufferPeak = Math.Max(bufferPeak, sample);
                 if (sample > LastPeakLevel)
                 {
                     LastPeakLevel = sample;
                 }
             }
+            CurrentPeakLevel = bufferPeak;
         };
         waveIn.StartRecording();
         return Task.CompletedTask;

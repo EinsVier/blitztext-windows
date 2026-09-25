@@ -424,6 +424,17 @@
                     <TextBlock x:Name="DictationLanguageLabelText" Text="Diktatsprache" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                     <ComboBox x:Name="DictationLanguageCombo" Margin="0,8,0,18" Height="34" SelectionChanged="Settings_Changed" />
 
+                    <TextBlock x:Name="MicrophoneLabelText" Text="Mikrofon" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                    <ComboBox x:Name="MicrophoneCombo" Margin="0,8,0,8" Height="34" SelectionChanged="Settings_Changed" />
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar x:Name="MicrophoneLevelBar" Height="8" Minimum="0" Maximum="1" />
+                        <TextBlock x:Name="MicrophoneLevelText" Grid.Column="1" Margin="8,0,0,0" Text="Pegel: --" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    </Grid>
+
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
                         <CheckBox x:Name="AutoPasteCheckBox" Content="Nach Abschluss automatisch einfuegen" Checked="Settings_Changed" Unchecked="Settings_Changed" />
                         <Label x:Name="AutoPasteHelpText" Style="{StaticResource HelpTextStyle}" />
@@ -585,6 +596,29 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="DictationProfileTitleText" Text="Diktierprofil" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    <Label x:Name="DictationProfileHelpText" Style="{StaticResource HelpTextStyle}" />
+                                </StackPanel>
+                                <TextBlock x:Name="DictationProfileHintText" Text="Ein Profil setzt Transkriptionshinweis und Eigennamen. Eigene Begriffe kannst du danach anpassen." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <DockPanel LastChildFill="True" Margin="0,0,0,18">
+                                    <Button x:Name="ApplyDictationProfileButton" DockPanel.Dock="Right" Content="Anwenden" Width="96" Height="32" Margin="10,0,0,0" Click="ApplyDictationProfileButton_Click" />
+                                    <ComboBox x:Name="DictationProfileCombo" Height="32" />
+                                </DockPanel>
+                                <Button x:Name="RestorePreviousDictationProfileButton"
+                                        Content="Vorheriges Diktierprofil wiederherstellen"
+                                        Height="32"
+                                        Margin="0,-10,0,18"
+                                        Visibility="Collapsed"
+                                        Click="RestorePreviousDictationProfileButton_Click" />
+
+                                <TextBlock x:Name="SaveDictationProfileTitleText" Text="Eigenes Profil speichern" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                                <TextBlock x:Name="SaveDictationProfileHintText" Text="Speichert den aktuellen Transkriptionshinweis und die Eigennamen unter einem eigenen Namen." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,6,0,12" />
+                                <DockPanel LastChildFill="True" Margin="0,0,0,18">
+                                    <Button x:Name="SaveDictationProfileButton" DockPanel.Dock="Right" Content="Speichern" Width="96" Height="32" Margin="10,0,0,0" Click="SaveDictationProfileButton_Click" />
+                                    <TextBox x:Name="DictationProfileNameBox" Height="32" VerticalContentAlignment="Center" />
+                                </DockPanel>
+
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="PromptPresetTitleText" Text="Prompt-Vorlagen (Verbessern)" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                                     <Label x:Name="PromptPresetsHelpText" Style="{StaticResource HelpTextStyle}" />
@@ -832,6 +866,22 @@
                                              AcceptsReturn="True"
                                              VerticalScrollBarVisibility="Auto"
                                              TextChanged="SourceTextBox_TextChanged" />
+
+                                    <Expander x:Name="TranscriptionDiagnosticsExpander"
+                                              Margin="0,12,0,0"
+                                              Foreground="{DynamicResource PrimaryTextBrush}">
+                                        <Expander.Header>
+                                            <TextBlock x:Name="TranscriptionDiagnosticsHeaderText"
+                                                       Text="Letzte Transkriptionsdiagnose"
+                                                       FontWeight="SemiBold" />
+                                        </Expander.Header>
+                                        <TextBox x:Name="TranscriptionDiagnosticsBox"
+                                                 Margin="0,8,0,0"
+                                                 MinHeight="94"
+                                                 TextWrapping="Wrap"
+                                                 IsReadOnly="True"
+                                                 VerticalScrollBarVisibility="Auto" />
+                                    </Expander>
 
                                     <Grid Margin="0,12,0,14">
                                         <Grid.ColumnDefinitions>
