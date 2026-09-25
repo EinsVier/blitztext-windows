@@ -22,23 +22,38 @@ public sealed class LocalWhisperTranscriptionProvider(AppSettings settings) : IT
 
         var outputBasePath = Path.Combine(Path.GetTempPath(), $"blitztext-{Guid.NewGuid():N}");
         var outputTextPath = outputBasePath + ".txt";
+        var transcriptionPrompt = PromptContextBuilder.BuildTranscriptionPrompt(settings);
         using var timeoutCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(settings.LocalWhisperTimeoutSeconds));
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellation.Token);
 
         try
         {
-            using var process = new Process
+            var startInfo = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = settings.LocalWhisperExecutablePath,
-                    Arguments = $"-m {Quote(settings.LocalWhisperModelPath)} -f {Quote(wavPath)} -l {LanguageDisplay.ToWhisperCode(settings.DictationLanguage)} -otxt -of {Quote(outputBasePath)}",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
+                FileName = settings.LocalWhisperExecutablePath,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
+
+            startInfo.ArgumentList.Add("-m");
+            startInfo.ArgumentList.Add(settings.LocalWhisperModelPath);
+            startInfo.ArgumentList.Add("-f");
+            startInfo.ArgumentList.Add(wavPath);
+            startInfo.ArgumentList.Add("-l");
+            startInfo.ArgumentList.Add(LanguageDisplay.ToWhisperCode(settings.DictationLanguage));
+            startInfo.ArgumentList.Add("-otxt");
+            startInfo.ArgumentList.Add("-of");
+            startInfo.ArgumentList.Add(outputBasePath);
+
+            if (!string.IsNullOrWhiteSpace(transcriptionPrompt))
+            {
+                startInfo.ArgumentList.Add("--prompt");
+                startInfo.ArgumentList.Add(transcriptionPrompt);
+            }
+
+            using var process = new Process { StartInfo = startInfo };
 
             process.Start();
             var stdoutTask = process.StandardOutput.ReadToEndAsync(linkedCancellation.Token);
@@ -73,11 +88,6 @@ public sealed class LocalWhisperTranscriptionProvider(AppSettings settings) : IT
         {
             TryDelete(outputTextPath);
         }
-    }
-
-    private static string Quote(string value)
-    {
-        return $"\"{value.Replace("\"", "\\\"")}\"";
     }
 
     private static void TryDelete(string path)

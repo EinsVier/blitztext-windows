@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private readonly TargetWindowService targetWindowService;
     private readonly DispatcherTimer autoSaveTimer;
     private readonly DispatcherTimer statusHighlightTimer;
+    private readonly DispatcherTimer microphoneLevelTimer;
     private readonly ObservableCollection<HistoryEntry> historyEntries = [];
     private readonly ObservableCollection<string> ollamaRewriteModels = [];
     private readonly List<HistoryEntry> allHistoryEntries = [];
@@ -41,7 +42,9 @@ public partial class MainWindow : Window
     private bool isDisposed;
     private string latestUpdateUrl = "";
     private string selectedPromptPresetId = "general";
+    private string selectedDictationProfileId = "general";
     private string? previousImprovePrompt;
+    private (string ProfileId, string Prompt, string Names)? previousDictationProfile;
     private WorkflowKind activeWorkflow;
     private TargetWindow activeTargetWindow = new(IntPtr.Zero, "");
     private CancellationTokenSource? workflowCancellation;
@@ -65,6 +68,8 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromSeconds(10)
         };
         statusHighlightTimer.Tick += (_, _) => ResetStatusHighlight();
+        microphoneLevelTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+        microphoneLevelTimer.Tick += (_, _) => UpdateMicrophoneLevel();
 
         InitializeComponent();
         DependencyPropertyDescriptor.FromProperty(System.Windows.Controls.TextBlock.TextProperty, typeof(System.Windows.Controls.TextBlock))
@@ -103,6 +108,7 @@ public partial class MainWindow : Window
         hotkeyService.Dispose();
         autoSaveTimer.Stop();
         statusHighlightTimer.Stop();
+        microphoneLevelTimer.Stop();
         recordingIndicator.Close();
         workflowCancellation?.Dispose();
     }
@@ -141,9 +147,11 @@ public partial class MainWindow : Window
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         ReprocessWorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
+        DictationProfileCombo.ItemsSource = DictationProfileCatalog.GetOptions(settings.AppLanguage, settings.SavedDictationProfiles);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
+        MicrophoneCombo.ItemsSource = AudioRecorderService.GetInputDevices();
         TranscriptionProviderCombo.ItemsSource = Enum.GetValues<TranscriptionProviderKind>();
         RewriteProviderCombo.ItemsSource = Enum.GetValues<RewriteProviderKind>();
         PrivacyProfileCombo.ItemsSource = LanguageDisplay.PrivacyProfileOptions(settings.AppLanguage);
@@ -156,9 +164,12 @@ public partial class MainWindow : Window
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(settings.DefaultWorkflow, settings.AppLanguage);
         ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(WorkflowKind.Improve, settings.AppLanguage);
         SelectPromptPreset(selectedPromptPresetId);
+        SelectDictationProfile(settings.DictationProfileId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(settings.AppLanguage, settings.AppLanguage);
         AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(settings.AppTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(settings.DictationLanguage, settings.AppLanguage);
+        MicrophoneCombo.SelectedItem = AudioRecorderService.GetInputDevices()
+            .FirstOrDefault(option => option.Value == settings.MicrophoneDeviceNumber);
         TranscriptionProviderCombo.SelectedItem = settings.TranscriptionProvider;
         RewriteProviderCombo.SelectedItem = settings.RewriteProvider;
         PrivacyProfileCombo.SelectedItem = LanguageDisplay.FindPrivacyProfile(settings.PrivacyProfile, settings.AppLanguage);
@@ -231,7 +242,8 @@ public partial class MainWindow : Window
                 activeWorkflow = workflowOverride ?? settings.DefaultWorkflow;
                 activeTargetWindow = targetWindowService.CaptureActiveWindow();
                 WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(activeWorkflow, settings.AppLanguage);
-                await audioRecorder.StartAsync();
+                await audioRecorder.StartAsync(settings.MicrophoneDeviceNumber);
+                microphoneLevelTimer.Start();
                 UpdateRecordButton();
                 recordingIndicator.Start();
                 StatusText.Text = settings.AppLanguage == AppLanguage.English
@@ -249,6 +261,7 @@ public partial class MainWindow : Window
                 : "Transkribiere und verarbeite...";
 
             var wavPath = await audioRecorder.StopAsync();
+            microphoneLevelTimer.Stop();
             recordingIndicator.Stop();
             workflowCancellation?.Cancel();
             workflowCancellation = new CancellationTokenSource();
@@ -260,6 +273,7 @@ public partial class MainWindow : Window
                 workflowCancellation.Token);
             SourceTextBox.Text = result.Transcript;
             ResultBox.Text = result.Text;
+            UpdateTranscriptionDiagnostics(result);
             if (settings.SaveHistory)
             {
                 AddHistoryEntry(result.Text, activeWorkflow, result.Transcript);
@@ -317,6 +331,11 @@ public partial class MainWindow : Window
         {
             if (ownsProcessingState)
             {
+                if (!audioRecorder.IsRecording)
+                {
+                    microphoneLevelTimer.Stop();
+                }
+
                 isProcessing = false;
                 UpdateRecordButton();
             }
@@ -364,7 +383,8 @@ public partial class MainWindow : Window
             if (!audioRecorder.IsRecording)
             {
                 isResultEditorRecording = true;
-                await audioRecorder.StartAsync();
+                await audioRecorder.StartAsync(settings.MicrophoneDeviceNumber);
+                microphoneLevelTimer.Start();
                 recordingIndicator.Start();
                 UpdateRecordButton();
                 StatusText.Text = settings.AppLanguage == AppLanguage.English
@@ -389,6 +409,7 @@ public partial class MainWindow : Window
                 : "Transkribiere gesprochenen Text...";
 
             var wavPath = await audioRecorder.StopAsync();
+            microphoneLevelTimer.Stop();
             isResultEditorRecording = false;
             recordingIndicator.Stop();
             workflowCancellation?.Cancel();
@@ -408,6 +429,7 @@ public partial class MainWindow : Window
             SourceTextBox.CaretIndex = SourceTextBox.Text.Length;
             SourceTextBox.ScrollToEnd();
             ResultBox.Clear();
+            UpdateTranscriptionDiagnostics(result);
             StatusText.Text = settings.AppLanguage == AppLanguage.English
                 ? "The recording was appended to the spoken text."
                 : "Die Aufnahme wurde an den gesprochenen Text angefuegt.";
@@ -432,6 +454,11 @@ public partial class MainWindow : Window
         {
             if (ownsProcessingState)
             {
+                if (!audioRecorder.IsRecording)
+                {
+                    microphoneLevelTimer.Stop();
+                }
+
                 isProcessing = false;
                 UpdateRecordButton();
             }
@@ -1297,6 +1324,9 @@ public partial class MainWindow : Window
         settings.DictationLanguage = DictationLanguageCombo.SelectedItem is DisplayOption<DictationLanguage> dictationLanguage
             ? dictationLanguage.Value
             : settings.DictationLanguage;
+        settings.MicrophoneDeviceNumber = MicrophoneCombo.SelectedItem is DisplayOption<int> microphone
+            ? microphone.Value
+            : settings.MicrophoneDeviceNumber;
         settings.TranscriptionProvider = TranscriptionProviderCombo.SelectedItem is TranscriptionProviderKind transcriptionProvider
             ? transcriptionProvider
             : settings.TranscriptionProvider;
@@ -1338,6 +1368,7 @@ public partial class MainWindow : Window
         settings.OllamaRewriteModel = OllamaRewriteModelCombo.Text.Trim();
         settings.CustomNames = CustomNamesBox.Text.Trim();
         settings.TranscriptionPrompt = TranscriptionPromptBox.Text.Trim();
+        settings.DictationProfileId = selectedDictationProfileId;
         settings.ImprovePrompt = ImprovePromptBox.Text.Trim();
         settings.CalmPrompt = CalmPromptBox.Text.Trim();
         settings.EmojisPrompt = EmojisPromptBox.Text.Trim();
@@ -1366,6 +1397,7 @@ public partial class MainWindow : Window
         settings.AppLanguage = importedSettings.AppLanguage;
         settings.AppTheme = importedSettings.AppTheme;
         settings.DictationLanguage = importedSettings.DictationLanguage;
+        settings.MicrophoneDeviceNumber = importedSettings.MicrophoneDeviceNumber;
         settings.TranscriptionProvider = importedSettings.TranscriptionProvider;
         settings.RewriteProvider = importedSettings.RewriteProvider;
         settings.TranscribeHotkeyId = importedSettings.TranscribeHotkeyId;
@@ -1383,6 +1415,16 @@ public partial class MainWindow : Window
         settings.OllamaRewriteModel = importedSettings.OllamaRewriteModel;
         settings.CustomNames = importedSettings.CustomNames;
         settings.TranscriptionPrompt = importedSettings.TranscriptionPrompt;
+        settings.DictationProfileId = importedSettings.DictationProfileId;
+        settings.SavedDictationProfiles = importedSettings.SavedDictationProfiles?
+            .Select(profile => new SavedDictationProfile
+            {
+                Id = profile.Id,
+                Name = profile.Name,
+                TranscriptionPrompt = profile.TranscriptionPrompt,
+                CustomNames = profile.CustomNames
+            })
+            .ToList() ?? [];
         settings.ImprovePrompt = importedSettings.ImprovePrompt;
         settings.CalmPrompt = importedSettings.CalmPrompt;
         settings.EmojisPrompt = importedSettings.EmojisPrompt;
@@ -1476,11 +1518,13 @@ public partial class MainWindow : Window
             ? reprocessWorkflow.Value
             : WorkflowKind.Improve;
         var selectedPresetId = GetSelectedPromptPresetId();
+        var selectedDictationProfileId = settings.DictationProfileId;
 
         isLoading = true;
         WorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         ReprocessWorkflowCombo.ItemsSource = WorkflowDisplay.GetOptions(settings.AppLanguage);
         PromptPresetCombo.ItemsSource = PromptPresetCatalog.GetOptions(settings.AppLanguage);
+        DictationProfileCombo.ItemsSource = DictationProfileCatalog.GetOptions(settings.AppLanguage, settings.SavedDictationProfiles);
         AppLanguageCombo.ItemsSource = LanguageDisplay.AppLanguageOptions(settings.AppLanguage);
         AppThemeCombo.ItemsSource = LanguageDisplay.AppThemeOptions(settings.AppLanguage);
         DictationLanguageCombo.ItemsSource = LanguageDisplay.DictationLanguageOptions(settings.AppLanguage);
@@ -1488,6 +1532,7 @@ public partial class MainWindow : Window
         WorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedWorkflow, settings.AppLanguage);
         ReprocessWorkflowCombo.SelectedItem = WorkflowDisplay.FindOption(selectedReprocessWorkflow, settings.AppLanguage);
         SelectPromptPreset(selectedPresetId);
+        SelectDictationProfile(selectedDictationProfileId);
         AppLanguageCombo.SelectedItem = LanguageDisplay.FindAppLanguage(selectedAppLanguage, settings.AppLanguage);
         AppThemeCombo.SelectedItem = LanguageDisplay.FindAppTheme(selectedTheme, settings.AppLanguage);
         DictationLanguageCombo.SelectedItem = LanguageDisplay.FindDictationLanguage(selectedDictationLanguage, settings.AppLanguage);
@@ -1588,6 +1633,13 @@ public partial class MainWindow : Window
 
         CustomNamesTitleText.Text = Localizer.T(language, "CustomNames");
         CustomNamesHintText.Text = Localizer.T(language, "CustomNamesHint");
+        DictationProfileTitleText.Text = Localizer.T(language, "DictationProfile");
+        DictationProfileHintText.Text = Localizer.T(language, "DictationProfileHint");
+        ApplyDictationProfileButton.Content = Localizer.T(language, "Apply");
+        RestorePreviousDictationProfileButton.Content = Localizer.T(language, "RestorePreviousDictationProfile");
+        SaveDictationProfileTitleText.Text = Localizer.T(language, "SaveDictationProfile");
+        SaveDictationProfileHintText.Text = Localizer.T(language, "SaveDictationProfileHint");
+        SaveDictationProfileButton.Content = Localizer.T(language, "Save");
         TranscriptionHintTitleText.Text = Localizer.T(language, "TranscriptionHint");
         TranscriptionHintHelpText.Text = Localizer.T(language, "TranscriptionHintHelp");
         WorkflowPromptsTitleText.Text = Localizer.T(language, "WorkflowPrompts");
@@ -1656,6 +1708,7 @@ public partial class MainWindow : Window
         HotkeysHelpText.ToolTip = Localizer.T(language, "HelpHotkeys");
         PromptPresetsHelpText.ToolTip = Localizer.T(language, "HelpPromptPresets");
         CustomNamesHelpText.ToolTip = Localizer.T(language, "HelpCustomNames");
+        DictationProfileHelpText.ToolTip = Localizer.T(language, "HelpDictationProfile");
         WorkflowPromptsHelpText.ToolTip = Localizer.T(language, "HelpWorkflowPrompts");
         EmojiOptionHelpText.ToolTip = Localizer.T(language, "HelpEmojiOption");
         UpdatesHelpText.ToolTip = Localizer.T(language, "HelpUpdates");
@@ -1898,6 +1951,192 @@ public partial class MainWindow : Window
             ? System.Windows.Media.Brushes.Firebrick
             : System.Windows.Media.Brushes.SeaGreen;
         StatusText.Text = message;
+    }
+
+    private void SelectDictationProfile(string profileId)
+    {
+        if (DictationProfileCombo.ItemsSource is not IEnumerable<DisplayOption<DictationProfile>> options)
+        {
+            return;
+        }
+
+        var selectedOption = options.FirstOrDefault(option => option.Value.Id == profileId) ?? options.FirstOrDefault();
+        if (selectedOption is not null)
+        {
+            selectedDictationProfileId = selectedOption.Value.Id;
+            DictationProfileCombo.SelectedItem = selectedOption;
+        }
+    }
+
+    private void ApplyDictationProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DictationProfileCombo.SelectedItem is not DisplayOption<DictationProfile> selectedProfile)
+        {
+            return;
+        }
+
+        var profile = selectedProfile.Value;
+        var profilePrompt = profile.GetTranscriptionPrompt(settings.AppLanguage);
+        var profileNames = profile.CustomNames;
+        if (string.Equals(TranscriptionPromptBox.Text.Trim(), profilePrompt, StringComparison.Ordinal)
+            && string.Equals(CustomNamesBox.Text.Trim(), profileNames, StringComparison.Ordinal))
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "This dictation profile is already active."
+                : "Dieses Diktierprofil ist bereits aktiv.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(TranscriptionPromptBox.Text) || !string.IsNullOrWhiteSpace(CustomNamesBox.Text))
+        {
+            var confirmation = System.Windows.MessageBox.Show(
+                Localizer.T(settings.AppLanguage, "ConfirmDictationProfileReplacement"),
+                Localizer.T(settings.AppLanguage, "ConfirmDictationProfileReplacementTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                StatusText.Text = settings.AppLanguage == AppLanguage.English
+                    ? "The existing dictation context was kept."
+                    : "Der vorhandene Diktierkontext wurde beibehalten.";
+                return;
+            }
+        }
+
+        previousDictationProfile ??= (settings.DictationProfileId, TranscriptionPromptBox.Text, CustomNamesBox.Text);
+        settings.DictationProfileId = profile.Id;
+        selectedDictationProfileId = profile.Id;
+        TranscriptionPromptBox.Text = profilePrompt;
+        CustomNamesBox.Text = profileNames;
+        RestorePreviousDictationProfileButton.Visibility = Visibility.Visible;
+        SaveSettingsFromUi(saveToDisk: false);
+        ScheduleAutoSave();
+        StatusText.Text = settings.AppLanguage == AppLanguage.English
+            ? $"Dictation profile applied: {selectedProfile.Label}. The previous context can be restored."
+            : $"Diktierprofil angewendet: {selectedProfile.Label}. Der vorherige Kontext kann wiederhergestellt werden.";
+    }
+
+    private void RestorePreviousDictationProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (previousDictationProfile is not { } previous)
+        {
+            return;
+        }
+
+        settings.DictationProfileId = previous.ProfileId;
+        selectedDictationProfileId = previous.ProfileId;
+        TranscriptionPromptBox.Text = previous.Prompt;
+        CustomNamesBox.Text = previous.Names;
+        SelectDictationProfile(selectedDictationProfileId);
+        previousDictationProfile = null;
+        RestorePreviousDictationProfileButton.Visibility = Visibility.Collapsed;
+        SaveSettingsFromUi(saveToDisk: false);
+        ScheduleAutoSave();
+        StatusText.Text = settings.AppLanguage == AppLanguage.English
+            ? "The previous dictation context was restored."
+            : "Der vorherige Diktierkontext wurde wiederhergestellt.";
+    }
+
+    private void SaveDictationProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var profileName = DictationProfileNameBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            StatusText.Text = settings.AppLanguage == AppLanguage.English
+                ? "Enter a name for the dictation profile first."
+                : "Bitte zuerst einen Namen fuer das Diktierprofil eingeben.";
+            DictationProfileNameBox.Focus();
+            return;
+        }
+
+        SaveSettingsFromUi(saveToDisk: false);
+        settings.SavedDictationProfiles ??= [];
+        var existingProfile = settings.SavedDictationProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Name, profileName, StringComparison.OrdinalIgnoreCase));
+
+        if (existingProfile is not null)
+        {
+            var confirmation = System.Windows.MessageBox.Show(
+                Localizer.T(settings.AppLanguage, "ConfirmSavedDictationProfileReplacement"),
+                Localizer.T(settings.AppLanguage, "ConfirmSavedDictationProfileReplacementTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
+        var savedProfile = existingProfile ?? new SavedDictationProfile
+        {
+            Id = $"custom-{Guid.NewGuid():N}"
+        };
+        savedProfile.Name = profileName;
+        savedProfile.TranscriptionPrompt = settings.TranscriptionPrompt;
+        savedProfile.CustomNames = settings.CustomNames;
+        if (existingProfile is null)
+        {
+            settings.SavedDictationProfiles.Add(savedProfile);
+        }
+
+        settings.DictationProfileId = savedProfile.Id;
+        selectedDictationProfileId = savedProfile.Id;
+        DictationProfileCombo.ItemsSource = DictationProfileCatalog.GetOptions(settings.AppLanguage, settings.SavedDictationProfiles);
+        SelectDictationProfile(savedProfile.Id);
+        settingsStore.Save(settings);
+        DictationProfileNameBox.Clear();
+        StatusText.Text = settings.AppLanguage == AppLanguage.English
+            ? $"Dictation profile saved: {savedProfile.Name}."
+            : $"Diktierprofil gespeichert: {savedProfile.Name}.";
+    }
+
+    private void UpdateMicrophoneLevel()
+    {
+        var level = audioRecorder.IsRecording ? audioRecorder.CurrentPeakLevel : 0d;
+        MicrophoneLevelBar.Value = Math.Clamp(level, 0d, 1d);
+        MicrophoneLevelText.Text = audioRecorder.IsRecording
+            ? $"{(settings.AppLanguage == AppLanguage.English ? "Level" : "Pegel")}: {level:P0}"
+            : $"{(settings.AppLanguage == AppLanguage.English ? "Level" : "Pegel")}: --";
+    }
+
+    private void UpdateTranscriptionDiagnostics(WorkflowRunResult result)
+    {
+        var english = settings.AppLanguage == AppLanguage.English;
+        var isLocalWhisper = settings.TranscriptionProvider == TranscriptionProviderKind.LocalWhisper;
+        var modelPath = settings.LocalWhisperModelPath;
+        var configuredModel = isLocalWhisper
+            ? Path.GetFileName(modelPath)
+            : settings.OpenAiTranscriptionModel;
+        var modelName = string.IsNullOrWhiteSpace(configuredModel) ? "-" : configuredModel;
+        var vitisCachePath = string.IsNullOrWhiteSpace(modelPath)
+            ? ""
+            : Path.Combine(
+                Path.GetDirectoryName(modelPath) ?? "",
+                $"{Path.GetFileNameWithoutExtension(modelPath)}-encoder-vitisai.rai");
+        var prompt = PromptContextBuilder.BuildTranscriptionPrompt(settings);
+
+        var lines = new List<string>
+        {
+            $"{(english ? "Provider" : "Anbieter")}: {(isLocalWhisper ? (english ? "Local Whisper" : "Lokales Whisper") : "OpenAI")}",
+            $"{(english ? "Dictation language" : "Diktatsprache")}: {LanguageDisplay.ToWhisperCode(settings.DictationLanguage)}",
+            $"{(english ? "Model" : "Modell")}: {modelName}",
+            $"{(english ? "Microphone peak" : "Mikrofonspitze")}: {audioRecorder.LastPeakLevel:P0}"
+        };
+
+        if (isLocalWhisper)
+        {
+            lines.Add(File.Exists(vitisCachePath)
+                ? (english ? "VitisAI cache: available" : "VitisAI-Cache: vorhanden")
+                : (english ? "VitisAI cache: not found" : "VitisAI-Cache: nicht gefunden"));
+            lines.Add(string.IsNullOrWhiteSpace(prompt)
+                ? (english ? "Whisper start prompt: not configured" : "Whisper-Startprompt: nicht gesetzt")
+                : $"{(english ? "Whisper start prompt" : "Whisper-Startprompt")}: {prompt}");
+        }
+
+        TranscriptionDiagnosticsBox.Text = string.Join(Environment.NewLine, lines);
     }
 
     private string AddRunDiagnostics(string message, WorkflowRunResult result)

@@ -65,6 +65,10 @@ Die Auswahl befindet sich im Tab **Provider**:
 3. Bei OpenAI den API-Key hinterlegen.
 4. Mit dem Provider-Test prüfen und anschließend eine echte Aufnahme testen.
 
+OpenAI-Dateitranskriptionen unter zwei Sekunden werden vor dem API-Aufruf
+abgebrochen. Lokales Whisper ist von dieser Grenze nicht betroffen. Die Grenze
+verhindert versehentliche Cloud-Aufrufe, kann aber auch kurze Wörter blockieren.
+
 Der OpenAI-Test prüft API-Key und Modellliste. Eine als „nicht gelistet"
 gemeldete Modell-ID ist ein Hinweis zur Prüfung, aber nicht allein ein Beweis,
 dass der Transkriptionsendpunkt sie nicht akzeptiert.
