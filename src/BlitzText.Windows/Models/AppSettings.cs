@@ -40,7 +40,9 @@ public sealed class AppSettings : INotifyPropertyChanged
     private bool keepOllamaWarm = true;
     private bool saveHistory = true;
     private bool autoPaste;
+    private bool addTrailingSpaceAfterResult;
     private bool addEmojisToRewrite;
+    private bool? startWithWindows;
     private WorkflowKind defaultWorkflow = WorkflowKind.Improve;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -212,10 +214,23 @@ public sealed class AppSettings : INotifyPropertyChanged
         set => SetField(ref autoPaste, value);
     }
 
+    public bool AddTrailingSpaceAfterResult
+    {
+        get => addTrailingSpaceAfterResult;
+        set => SetField(ref addTrailingSpaceAfterResult, value);
+    }
+
     public bool AddEmojisToRewrite
     {
         get => addEmojisToRewrite;
         set => SetField(ref addEmojisToRewrite, value);
+    }
+
+    // Null keeps the pre-setting state distinguishable so existing installer shortcuts remain enabled.
+    public bool? StartWithWindows
+    {
+        get => startWithWindows;
+        set => SetField(ref startWithWindows, value);
     }
 
     public bool KeepOllamaWarm

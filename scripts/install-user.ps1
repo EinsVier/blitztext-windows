@@ -87,6 +87,7 @@ if ($NoStartup) {
     $shortcut = $shell.CreateShortcut($startupShortcut)
     $shortcut.TargetPath = $exePath
     $shortcut.WorkingDirectory = $installDir
+    $shortcut.Arguments = "--startup"
     $shortcut.IconLocation = $exePath
     $shortcut.Save()
 }

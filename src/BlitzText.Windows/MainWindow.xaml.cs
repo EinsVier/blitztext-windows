@@ -16,6 +16,7 @@ namespace BlitzText.Windows;
 public partial class MainWindow : Window
 {
     private readonly SettingsStore settingsStore = new();
+    private readonly StartupShortcutService startupShortcutService = new();
     private readonly HistoryStore historyStore = new();
     private readonly CredentialStore credentialStore = new();
     private readonly OllamaConnectionTester ollamaConnectionTester = new();
@@ -54,6 +55,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         settings = settingsStore.Load();
+        settings.StartWithWindows ??= startupShortcutService.IsEnabled;
         MigrateLegacyEmojiWorkflow(settings);
         LoadProviderApiKeys();
         workflowRunner = new BlitzWorkflowRunner(new ProviderFactory(settings), settings);
@@ -197,8 +199,10 @@ public partial class MainWindow : Window
         AddEmojisToRewriteCheckBox.IsChecked = settings.AddEmojisToRewrite;
         ReprocessAddEmojisCheckBox.IsChecked = settings.AddEmojisToRewrite;
         AutoPasteCheckBox.IsChecked = settings.AutoPaste;
+        AddTrailingSpaceAfterResultCheckBox.IsChecked = settings.AddTrailingSpaceAfterResult;
         SaveHistoryCheckBox.IsChecked = settings.SaveHistory;
         KeepOllamaWarmCheckBox.IsChecked = settings.KeepOllamaWarm;
+        StartWithWindowsCheckBox.IsChecked = settings.StartWithWindows == true;
         RefreshWhisperModelOptions();
         isLoading = false;
         ApplyTheme();
@@ -283,7 +287,7 @@ public partial class MainWindow : Window
             {
                 if (targetWindowService.Activate(activeTargetWindow))
                 {
-                    var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(result.Text, activeTargetWindow.Handle);
+                    var clipboardRestored = await ClipboardPasteService.PasteTextPreservingClipboardAsync(PrepareResultForClipboard(result.Text), activeTargetWindow.Handle);
                             var pasteMessage = string.IsNullOrWhiteSpace(activeTargetWindow.Title)
                                 ? (settings.AppLanguage == AppLanguage.English ? "Done. Result was pasted." : "Fertig. Ergebnis wurde eingefuegt.")
                                 : (settings.AppLanguage == AppLanguage.English ? $"Done. Result was pasted into: {activeTargetWindow.Title}" : $"Fertig. Ergebnis wurde eingefuegt in: {activeTargetWindow.Title}");
@@ -307,7 +311,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            ClipboardPasteService.Copy(result.Text);
+            ClipboardPasteService.Copy(PrepareResultForClipboard(result.Text));
             StatusText.Text = AddRunDiagnostics(
                 settings.AppLanguage == AppLanguage.English
                     ? "Done. Result was copied to the clipboard."
@@ -770,10 +774,20 @@ public partial class MainWindow : Window
             return;
         }
 
-        ClipboardPasteService.Copy(ResultBox.Text);
+        ClipboardPasteService.Copy(PrepareResultForClipboard(ResultBox.Text));
         StatusText.Text = settings.AppLanguage == AppLanguage.English
             ? "Result was copied to the clipboard."
             : "Ergebnis wurde in die Zwischenablage kopiert.";
+    }
+
+    private string PrepareResultForClipboard(string text)
+    {
+        if (!settings.AddTrailingSpaceAfterResult || string.IsNullOrEmpty(text) || char.IsWhiteSpace(text[^1]))
+        {
+            return text;
+        }
+
+        return text + " ";
     }
 
     private async void ReprocessResultButton_Click(object sender, RoutedEventArgs e)
@@ -823,7 +837,7 @@ public partial class MainWindow : Window
                 AddHistoryEntry(result, workflow, sourceText);
             }
 
-            ClipboardPasteService.Copy(result);
+            ClipboardPasteService.Copy(PrepareResultForClipboard(result));
             StatusText.Text = settings.AppLanguage == AppLanguage.English
                 ? "Reprocessed result was copied to the clipboard."
                 : "Erneut verarbeitetes Ergebnis wurde in die Zwischenablage kopiert.";
@@ -1374,8 +1388,10 @@ public partial class MainWindow : Window
         settings.EmojisPrompt = EmojisPromptBox.Text.Trim();
         settings.AddEmojisToRewrite = AddEmojisToRewriteCheckBox.IsChecked == true;
         settings.AutoPaste = AutoPasteCheckBox.IsChecked == true;
+        settings.AddTrailingSpaceAfterResult = AddTrailingSpaceAfterResultCheckBox.IsChecked == true;
         settings.SaveHistory = SaveHistoryCheckBox.IsChecked == true;
         settings.KeepOllamaWarm = KeepOllamaWarmCheckBox.IsChecked == true;
+        settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
 
         if (saveToDisk)
         {
@@ -1383,6 +1399,7 @@ public partial class MainWindow : Window
             credentialStore.SaveOpenRouterApiKey(settings.OpenRouterApiKey);
             credentialStore.SaveAnthropicApiKey(settings.AnthropicApiKey);
             settingsStore.Save(settings);
+            startupShortcutService.SetEnabled(settings.StartWithWindows == true, Environment.ProcessPath ?? "");
         }
 
         RefreshPromptDetails();
@@ -1430,6 +1447,7 @@ public partial class MainWindow : Window
         settings.EmojisPrompt = importedSettings.EmojisPrompt;
         settings.AddEmojisToRewrite = importedSettings.AddEmojisToRewrite;
         settings.AutoPaste = importedSettings.AutoPaste;
+        settings.AddTrailingSpaceAfterResult = importedSettings.AddTrailingSpaceAfterResult;
         settings.SaveHistory = importedSettings.SaveHistory;
         settings.KeepOllamaWarm = importedSettings.KeepOllamaWarm;
         settings.PrivacyProfile = importedSettings.PrivacyProfile;
@@ -1586,6 +1604,9 @@ public partial class MainWindow : Window
         AppThemeLabelText.Text = Localizer.T(language, "AppTheme");
         DictationLanguageLabelText.Text = Localizer.T(language, "DictationLanguage");
         AutoPasteCheckBox.Content = Localizer.T(language, "AutoPaste");
+        AddTrailingSpaceAfterResultCheckBox.Content = Localizer.T(language, "AddTrailingSpaceAfterResult");
+        StartWithWindowsCheckBox.Content = Localizer.T(language, "StartWithWindows");
+        StartWithWindowsHelpText.ToolTip = Localizer.T(language, "HelpStartWithWindows");
         AddEmojisToRewriteText.Text = Localizer.T(language, "AddEmojisToRewrite");
         SaveHistoryCheckBox.Content = Localizer.T(language, "SaveHistory");
         KeepOllamaWarmCheckBox.Content = Localizer.T(language, "KeepOllamaWarm");
@@ -1699,6 +1720,7 @@ public partial class MainWindow : Window
         ControlsHelpText.ToolTip = Localizer.T(language, "HelpControls");
         AddEmojisToRewriteHelpText.ToolTip = Localizer.T(language, "HelpAddEmojisToRewrite");
         AutoPasteHelpText.ToolTip = Localizer.T(language, "HelpAutoPaste");
+        AddTrailingSpaceAfterResultHelpText.ToolTip = Localizer.T(language, "HelpAddTrailingSpaceAfterResult");
         KeepOllamaWarmHelpText.ToolTip = Localizer.T(language, "HelpKeepOllamaWarm");
         OpenAiHelpText.ToolTip = Localizer.T(language, "HelpOpenAi");
         OpenRouterHelpText.ToolTip = Localizer.T(language, "HelpOpenRouter");

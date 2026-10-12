@@ -439,6 +439,14 @@
                         <CheckBox x:Name="AutoPasteCheckBox" Content="Nach Abschluss automatisch einfuegen" Checked="Settings_Changed" Unchecked="Settings_Changed" />
                         <Label x:Name="AutoPasteHelpText" Style="{StaticResource HelpTextStyle}" />
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                        <CheckBox x:Name="AddTrailingSpaceAfterResultCheckBox" Checked="Settings_Changed" Unchecked="Settings_Changed" />
+                        <Label x:Name="AddTrailingSpaceAfterResultHelpText" Style="{StaticResource HelpTextStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                        <CheckBox x:Name="StartWithWindowsCheckBox" Checked="Settings_Changed" Unchecked="Settings_Changed" />
+                        <Label x:Name="StartWithWindowsHelpText" Style="{StaticResource HelpTextStyle}" />
+                    </StackPanel>
                     <CheckBox x:Name="SaveHistoryCheckBox" Content="Verlauf speichern" Margin="0,0,0,18" Checked="Settings_Changed" Unchecked="Settings_Changed" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,26">
                         <CheckBox x:Name="KeepOllamaWarmCheckBox" Content="Ollama warmhalten" Checked="Settings_Changed" Unchecked="Settings_Changed" />

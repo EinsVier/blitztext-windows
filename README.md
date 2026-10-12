@@ -8,23 +8,37 @@ BlitzText is an open-source Windows dictation app. It records your voice, transc
 
 > A short real-workflow demo is planned to show hotkey → speech → transcription → polished text.
 
-## Install BlitzText 0.5.2
+## Install BlitzText
 
-### Recommended: latest GitHub release
+Choose one of these installation methods:
 
-Download and run the current per-user MSI:
+### WinGet
 
-[**Download BlitzText Windows 0.5.2**](https://github.com/EinsVier/blitztext-windows/releases/download/v0.5.2/BlitzText-Windows-0.5.2-win-x64.msi)
-
-The MSI installs BlitzText for the current Windows user and requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
-
-### Stable winget package
-
-winget currently provides the earlier stable version 0.4.1:
+Install the current catalog version for your Windows user:
 
 ```powershell
-winget install --id EinsVier.BlitzText --exact
+winget install --id EinsVier.BlitzText --exact --source winget
 ```
+
+Choose a custom installation folder, for example `C:\Apps\BlitzText`:
+
+```powershell
+winget install --id EinsVier.BlitzText --exact --source winget --location "C:\Apps\BlitzText"
+```
+
+### GitHub release MSI
+
+Download and run the [latest BlitzText Windows MSI](https://github.com/EinsVier/blitztext-windows/releases/latest). The installer lets you choose an installation folder and installs for the current Windows user. The framework-dependent MSI requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0); WinGet installs that dependency when needed.
+
+### ZIP package
+
+Download the ZIP from the [latest GitHub release](https://github.com/EinsVier/blitztext-windows/releases/latest), extract it, then run `install.ps1` in the extracted folder. By default, it installs to `%LOCALAPPDATA%\BlitzText\app` for the current user. Pass `-InstallDir` to choose another folder:
+
+```powershell
+.\install.ps1 -InstallDir "C:\Apps\BlitzText"
+```
+
+See [Installation guide](docs/installieren.md) for custom paths, startup options, and uninstall instructions.
 
 ## Choose online, local, or both
 

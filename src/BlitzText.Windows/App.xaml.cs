@@ -30,7 +30,15 @@ public partial class App : System.Windows.Application
         };
         notifyIcon.DoubleClick += (_, _) => ShowMainWindow();
 
-        ShowMainWindow();
+        if (StartupShortcutService.IsStartupLaunch(e.Args))
+        {
+            mainWindow.Show();
+            mainWindow.Hide();
+        }
+        else
+        {
+            ShowMainWindow();
+        }
         singleInstanceManager.RegisterActivationHandler(
             () => Dispatcher.BeginInvoke(ShowMainWindow));
     }
